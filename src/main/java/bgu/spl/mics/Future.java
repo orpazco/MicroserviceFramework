@@ -18,7 +18,6 @@ public class Future<T> {
 	 * This should be the the only public constructor in this class.
 	 */
 	public Future() {
-		
 	}
 	
 	/**
@@ -30,7 +29,6 @@ public class Future<T> {
      * 	       
      */
 	public T get() {
-		
         return null; 
 	}
 	
@@ -60,7 +58,6 @@ public class Future<T> {
      *         elapsed, return null.
      */
 	public T get(long timeout, TimeUnit unit) {
-		
         return null;
 	}
 
