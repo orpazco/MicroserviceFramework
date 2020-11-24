@@ -24,4 +24,12 @@ public class Ewok {
     public void release() {
     	
     }
+
+    public int getSerialNumber(){
+        return serialNumber;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
 }
