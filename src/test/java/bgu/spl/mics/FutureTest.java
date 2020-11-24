@@ -5,8 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 public class FutureTest {
@@ -33,6 +32,7 @@ public class FutureTest {
      */
     @Test
     public void testIsDone(){
+        assertFalse(future.isDone());
         future.resolve(expectedRes);
         assertTrue(future.isDone());
     }
@@ -43,7 +43,6 @@ public class FutureTest {
     @Test
     public void testGetResult(){
         future.resolve(expectedRes);
-        assertTrue(future.isDone());
         assertEquals(expectedRes, future.get());
     }
 
