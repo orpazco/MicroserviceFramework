@@ -10,7 +10,6 @@ public class MessageBusBroadcastTest {
     TestBCastEvent1 be1;
     TestBCastEvent2 be2;
     TestMic1 bm1;
-    TestMic1 bm3;
     TestMic2 bm2;
     MessageBus messageBus;
 
