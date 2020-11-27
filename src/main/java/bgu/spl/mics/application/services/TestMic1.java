@@ -2,10 +2,10 @@ package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
 
-public class dummyBCastMicroservice2 extends MicroService {
+public class TestMic1 extends MicroService {
 
-    public dummyBCastMicroservice2(){
-        super("dummyBCast2");
+    public TestMic1(){
+        super("dummyBCast1");
     }
 
     protected void initialize(){

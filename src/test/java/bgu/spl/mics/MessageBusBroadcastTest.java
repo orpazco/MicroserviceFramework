@@ -1,6 +1,5 @@
 package bgu.spl.mics;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import  bgu.spl.mics.application.messages.*;
@@ -9,20 +8,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 public class MessageBusBroadcastTest {
-    dummyBroadcastEvent1 be1;
-    dummyBroadcastEvent2 be2;
-    dummyBCastMicroservice1 bm1;
-    dummyBCastMicroservice1 bm3;
-    dummyBCastMicroservice2 bm2;
+    TestBCastEvent1 be1;
+    TestBCastEvent2 be2;
+    TestMic1 bm1;
+    TestMic1 bm3;
+    TestMic2 bm2;
     MessageBus messageBus;
 
     @BeforeEach
     public void Setup(){
-        be1 = new dummyBroadcastEvent1();
-        be2 = new dummyBroadcastEvent2();
-        bm1 = new dummyBCastMicroservice1();
-        bm2 = new dummyBCastMicroservice2();
-        bm3 = new dummyBCastMicroservice1(); //sender
+        be1 = new TestBCastEvent1();
+        be2 = new TestBCastEvent2();
+        bm1 = new TestMic1();
+        bm2 = new TestMic2();
+        bm3 = new TestMic1(); //sender
         messageBus = new MessageBusImpl();
         messageBus.register(bm1);
         messageBus.register(bm2);
