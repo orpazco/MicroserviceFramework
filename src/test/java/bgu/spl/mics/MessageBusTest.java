@@ -121,6 +121,27 @@ public class MessageBusTest {
         }
     }
 
+    @Test
+    public void testRoundRobin(){
+        // send 3 events to message bus and check if the services received the messages by round robin
+        messageBus.subscribeEvent(TestEvent.class, service1);
+        messageBus.subscribeEvent(TestEvent.class, service2);
+        TestEvent testEvent3 = new TestEvent();
+        messageBus.sendEvent(testEvent1);
+        messageBus.sendEvent(testEvent2);
+        messageBus.sendEvent(testEvent3);
+        try {
+            Message message1 = messageBus.awaitMessage(service1);
+            Message message2 = messageBus.awaitMessage(service2);
+            Message message3 = messageBus.awaitMessage(service1);
+            assertEquals(testEvent1, message1, "received unexpected event 1 from messageBus");
+            assertEquals(testEvent2, message2, "received unexpected event 2 from messageBus");
+            assertEquals(testEvent3, message3, "received unexpected event 3 from messageBus");
+        } catch (IllegalStateException | InterruptedException e) {
+            fail(e.getMessage());
+        }
+    }
+
     @AfterEach
     public void tearDown(){
         messageBus.unregister(service1);
