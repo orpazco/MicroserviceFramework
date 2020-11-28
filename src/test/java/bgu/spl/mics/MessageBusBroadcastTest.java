@@ -7,14 +7,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 public class MessageBusBroadcastTest {
-    TestBCastEvent1 be1;
-    TestBCastEvent2 be2;
-    TestMic1 bm1;
-    TestMic2 bm2;
-    MessageBus messageBus;
+    private TestBCastEvent1 be1;
+    private TestBCastEvent2 be2;
+    private TestMic1 bm1;
+    private TestMic2 bm2;
+    private static MessageBus messageBus;
 
     @BeforeAll
-    public void setUp(){
+    public static void setUp(){
         messageBus = MessageBusImpl.getInstance();
     }
 
@@ -28,12 +28,6 @@ public class MessageBusBroadcastTest {
         messageBus.register(bm2);
     }
 
-    @Test
-    public void testBSingleton(){
-        // test singleton
-        MessageBus messageBusOther = MessageBusImpl.getInstance(); // assign a message bus to a different reference
-        assertSame(messageBus, messageBusOther, "Not the same instance"); // check if both are the same instance
-    }
     @Test
     public void testBCastSendAndReceive() {
         // tests if subscribers receive the right messages
@@ -49,6 +43,7 @@ public class MessageBusBroadcastTest {
         }
         assertEquals(b ,be1, "Expected message type: " + be1.getClass() + "Actual: " + b.getClass());
     }
+
     @Test
     public void testBCastMultiSubAndNoneSub(){
         // tests if multi-subscribers (more than one subscription) get correct ones, and that non-subscribers are excluded
@@ -79,9 +74,8 @@ public class MessageBusBroadcastTest {
         }
         // now bm2 should have only be1 in its queue as well
         assertEquals(a ,b);
-
-
     }
+
     @Test
     public void testBCastUnregisteredAwait() {
         //tests that an unregistered waiter throws an exception
@@ -99,6 +93,7 @@ public class MessageBusBroadcastTest {
         }
         fail("Excpected IllegalStateException and got no exception");
     }
+
     @Test
     public void testBCastNoSubscribers(){
         // tests that a message that was sent while no one was subscribing to it is deleted (no one receives it after subscribing)
@@ -116,13 +111,11 @@ public class MessageBusBroadcastTest {
         }
         // checks if the message received is the first one sent or the second, if got the second one - that means first message was not saved
         assertEquals(a, be2, "Expected message type: " + be1.getClass() + "Actual: " + a.getClass());
-
     }
+
     @AfterEach
     public void tearDown(){
         messageBus.unregister(bm1);
         messageBus.unregister(bm2);
     }
-
-
 }

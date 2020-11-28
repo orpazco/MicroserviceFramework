@@ -3,6 +3,8 @@ package bgu.spl.mics;
 import bgu.spl.mics.application.messages.TestEvent;
 import bgu.spl.mics.application.services.TestMic1;
 import bgu.spl.mics.application.services.TestMic2;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,18 +16,29 @@ public class MessageBusTest {
     private TestMic2 service2;
     private TestEvent testEvent1;
     private TestEvent testEvent2;
-    private MessageBusImpl messageBus;
+    private static MessageBusImpl messageBus;
+
+    @BeforeAll
+    public void setUp(){
+        messageBus = MessageBusImpl.getInstance();
+    }
 
     @BeforeEach
-    public void setUp(){
+    public void preTest(){
         service1 = new TestMic1();
         service2 = new TestMic2();
         testEvent1 = new TestEvent();
         testEvent2 = new TestEvent();
-        messageBus = MessageBusImpl.getInstance();
 
         messageBus.register(service1);
         messageBus.register(service2);
+    }
+
+    @Test
+    public void testBSingleton(){
+        // test singleton
+        MessageBus messageBusOther = MessageBusImpl.getInstance(); // assign a message bus to a different reference
+        assertSame(messageBus, messageBusOther, "Not the same instance"); // check if both are the same instance
     }
 
     @Test
@@ -127,6 +140,12 @@ public class MessageBusTest {
         } catch (IllegalStateException | InterruptedException e) {
             fail(e.getMessage());
         }
+    }
+
+    @AfterEach
+    public void tearDown(){
+        messageBus.unregister(service1);
+        messageBus.unregister(service2);
     }
 
 }
