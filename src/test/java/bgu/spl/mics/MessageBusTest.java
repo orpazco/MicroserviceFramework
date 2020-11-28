@@ -28,60 +28,44 @@ public class MessageBusTest {
         messageBus.register(service2);
     }
 
-    /**
-     * in this test scenario service 1 register & subscribe to TestEvent, then a TestEvent is sent
-     * and service 1 await for this event to return
-     */
     @Test
-    public void testSubscribeEventAndSend(){
-        // Check if message bus sends the events to the subscribers
+    public void testSubscribeSendAwait(){
+        // Check if message bus sends the events to the subscribers, and check if the await function returns the
+        // sent event
         messageBus.subscribeEvent(TestEvent.class, service1);
         messageBus.sendEvent(testEvent1);
         try {
             Message message = messageBus.awaitMessage(service1);
             assertEquals(testEvent1, message, "received unexpected event from messageBus await");
-        } catch (Exception e) {
+        } catch (IllegalStateException | InterruptedException e) {
             fail(e.getMessage());
         }
     }
 
     @Test
-    public void testSendEvent2MS(){
-        // Check if the message bus sends the events to all services that subscribes to this type of event
+    public void testSend2EventsSameMS(){
+        // Check if the message bus sends the events to the service that subscribes to this type of event
         messageBus.subscribeEvent(TestEvent.class, service1);
-        messageBus.subscribeEvent(TestEvent.class, service2);
         messageBus.sendEvent(testEvent1);
         messageBus.sendEvent(testEvent2);
         try {
             Message message1 = messageBus.awaitMessage(service1);
             Message message2 = messageBus.awaitMessage(service1);
-            assertEquals(testEvent1, message1, "received unexpected event from messageBus to service 1");
-            assertEquals(testEvent2, message2, "received unexpected event from messageBus to service 2");
-        } catch (InterruptedException e) {
-            fail(e.getMessage());
-        }
-    }
-
-    @Test
-    public void testAwaitMessage(){//?
-        messageBus.subscribeEvent(TestEvent.class, service1);
-        messageBus.sendEvent(testEvent1);
-        try {
-            Message message1 = messageBus.awaitMessage(service1);
-            assertEquals(testEvent1, message1, "received unexpected event from messageBus await");
-        } catch (Exception e) {
+            assertEquals(testEvent1, message1, "received unexpected event from messageBus to service");
+            assertEquals(testEvent2, message2, "received unexpected event from messageBus to service");
+        } catch (IllegalStateException | InterruptedException e) {
             fail(e.getMessage());
         }
     }
 
     @Test
     public void testCompleteEvent(){
-        // Check is the message bud updated the event result in the corresponding future object
+        // Check if the message bus updated the event result in the corresponding future object
         String expectedRes = "some result";
         messageBus.subscribeEvent(TestEvent.class, service1);
         Future<String> result = messageBus.sendEvent(testEvent1);
         messageBus.complete(testEvent1, expectedRes);
-        assertEquals(expectedRes, result.get(), "didn't received the expected result from the complete event");
+        assertEquals(expectedRes, result.get(), "didn't receive the expected result from the complete event");
     }
 
     @Test
@@ -99,8 +83,8 @@ public class MessageBusTest {
         messageBus.complete(testEvent2, expectedRes2);
 
         // check if each future updated according to the right event
-        assertEquals(expectedRes1, resultEvent1.get(), "didn't received the expected result. expected: " + expectedRes1 + ", actual: " + resultEvent1.get());
-        assertEquals(expectedRes2, resultEvent2.get(), "didn't received the expected result. expected: " + expectedRes2 + ", actual: " + resultEvent2.get());
+        assertEquals(expectedRes1, resultEvent1.get(), "didn't receive the expected result. expected: " + expectedRes1 + ", actual: " + resultEvent1.get());
+        assertEquals(expectedRes2, resultEvent2.get(), "didn't receive the expected result. expected: " + expectedRes2 + ", actual: " + resultEvent2.get());
     }
 
     @Test
@@ -110,16 +94,16 @@ public class MessageBusTest {
         messageBus.unregister(service1);
         messageBus.sendEvent(testEvent1);
 
-        // reregister and subscribe and send another test event
+        // register and subscribe again, and send another test event
         messageBus.register(service1);
         messageBus.subscribeEvent(TestEvent.class, service1);
         messageBus.sendEvent(testEvent2);
 
-        // check if the message bus sends the last events that was send after the service subscribe again
+        // check if the message bus sends the last event that was sent after the service subscribed again
         try {
             Message message = messageBus.awaitMessage(service2);
             assertEquals(testEvent2, message, "received unexpected event from messageBus");
-        } catch (InterruptedException e) {
+        } catch (IllegalStateException | InterruptedException e) {
             fail(e.getMessage());
         }
     }
@@ -134,13 +118,13 @@ public class MessageBusTest {
         messageBus.sendEvent(testEvent2);
         messageBus.sendEvent(testEvent3);
         try {
-            Message message2 = messageBus.awaitMessage(service2);
             Message message1 = messageBus.awaitMessage(service1);
+            Message message2 = messageBus.awaitMessage(service2);
             Message message3 = messageBus.awaitMessage(service1);
-            assertEquals(testEvent1, message1, "received unexpected event from messageBus");
-            assertEquals(testEvent2, message2, "received unexpected event from messageBus");
-            assertEquals(testEvent3, message3, "received unexpected event from messageBus");
-        } catch (InterruptedException e) {
+            assertEquals(testEvent1, message1, "received unexpected event 1 from messageBus");
+            assertEquals(testEvent2, message2, "received unexpected event 2 from messageBus");
+            assertEquals(testEvent3, message3, "received unexpected event 3 from messageBus");
+        } catch (IllegalStateException | InterruptedException e) {
             fail(e.getMessage());
         }
     }
