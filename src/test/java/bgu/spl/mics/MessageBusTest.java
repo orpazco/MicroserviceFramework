@@ -19,7 +19,7 @@ public class MessageBusTest {
     private static MessageBusImpl messageBus;
 
     @BeforeAll
-    public void setUp(){
+    public static void setUp(){
         messageBus = MessageBusImpl.getInstance();
     }
 

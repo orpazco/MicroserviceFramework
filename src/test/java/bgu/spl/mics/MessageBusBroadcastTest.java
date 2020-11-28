@@ -7,11 +7,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 public class MessageBusBroadcastTest {
-    TestBCastEvent1 bCastEvent1;
-    TestBCastEvent2 bCastEvent2;
-    TestMic1 bCastMic1;
-    TestMic2 bCastMic2;
-    MessageBus messageBus;
+    private TestBCastEvent1 bCastEvent1;
+    private TestBCastEvent2 bCastEvent2;
+    private TestMic1 bCastMic1;
+    private TestMic2 bCastMic2;
+    private static MessageBus messageBus;
 
     @BeforeAll
     public static void setUp(){
@@ -22,7 +22,7 @@ public class MessageBusBroadcastTest {
     public void preTest(){
         bCastEvent1 = new TestBCastEvent1();
         bCastEvent2 = new TestBCastEvent2();
-        bCastMic1 = new TestMic1(); //TODO - change names
+        bCastMic1 = new TestMic1();
         bCastMic2 = new TestMic2();
         messageBus.register(bCastMic1);
         messageBus.register(bCastMic2);
@@ -43,6 +43,7 @@ public class MessageBusBroadcastTest {
         }
         assertEquals(b , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + b.getClass());
     }
+
     @Test
     public void testBCastmult(){
         // test content duplication - multiple subscribers get the same message

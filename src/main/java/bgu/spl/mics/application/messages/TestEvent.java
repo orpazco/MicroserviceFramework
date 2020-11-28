@@ -7,21 +7,17 @@ import bgu.spl.mics.Event;
  */
 public class TestEvent implements Event<String> {
     private static int index = 1;
-    private int testIndex;
+    private int content;
 
     public TestEvent(){
-        testIndex = index;
+        content = index;
         index++;
-    }
-
-    public int getTestIndex() {
-        return testIndex;
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof TestEvent){
-            return ((TestEvent) obj).testIndex == testIndex;
+            return ((TestEvent) obj).content == content;
         }
         return false;
     }
