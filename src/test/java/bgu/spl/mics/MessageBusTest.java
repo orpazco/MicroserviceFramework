@@ -22,7 +22,7 @@ public class MessageBusTest {
         service2 = new TestMic2();
         testEvent1 = new TestEvent();
         testEvent2 = new TestEvent();
-        messageBus = new MessageBusImpl();
+        messageBus = MessageBusImpl.getInstance();
 
         messageBus.register(service1);
         messageBus.register(service2);
