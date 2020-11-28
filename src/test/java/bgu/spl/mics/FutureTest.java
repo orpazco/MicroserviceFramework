@@ -2,11 +2,8 @@ package bgu.spl.mics;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 public class FutureTest {
@@ -22,10 +19,11 @@ public class FutureTest {
 
     @Test
     public void testResolve(){
-        String str = "someResult";
-        future.resolve(str);
+        future.resolve(expectedRes);
         assertTrue(future.isDone());
-        assertEquals(str, future.get());
+        String actualRes = future.get();
+        assertEquals(expectedRes, actualRes, "expected to different result. expected: " + expectedRes +
+                ", actual: " + actualRes);
     }
 
     /**
@@ -33,8 +31,9 @@ public class FutureTest {
      */
     @Test
     public void testIsDone(){
+        assertFalse(future.isDone(), "parameter 'isDone' = true, not as expected");
         future.resolve(expectedRes);
-        assertTrue(future.isDone());
+        assertTrue(future.isDone(), "parameter 'isDone' = false, not as expected");
     }
 
     /**
@@ -42,9 +41,11 @@ public class FutureTest {
      */
     @Test
     public void testGetResult(){
+        assertFalse(future.isDone(),"parameter 'isDone' = true, not as expected");
         future.resolve(expectedRes);
-        assertTrue(future.isDone());
-        assertEquals(expectedRes, future.get());
+        String actualRes = future.get();
+        assertEquals(expectedRes, actualRes, "expected to different result. expected: " + expectedRes +
+                ", actual: " + actualRes);
     }
 
     /**
@@ -52,47 +53,21 @@ public class FutureTest {
      */
     @Test
     public void testGetResultTimeout(){
+        assertFalse(future.isDone(), "parameter 'isDone' = true, not as expected");
         future.resolve(expectedRes);
-        assertTrue(future.isDone());
-        assertEquals(expectedRes, future.get(3, TimeUnit.SECONDS));
+        String actualRes = future.get(300, TimeUnit.MILLISECONDS);
+        assertEquals(expectedRes, actualRes,"expected to different result. expected: " + expectedRes +
+                ", actual: " + actualRes);
     }
 
     /**
-     * test if the future throw exception if there is no result after some time
+     * test if the future return null if there is no result after some time
      */
     @Test
-    public void testGetResultNoResolve(){
-        String actualRes = null;
-        try {
-            actualRes = future.get();
-        }
-        catch (Exception e){
-            assertEquals(actualRes, null);
-        }
-        // if no exception thrown the tests fails
-        assertTrue(false);
-    }
-
-    /**
-     * test if the future throw exception if there is no result after some time
-     */
-    @Test
-    public void testGetResultTimeoutNoRes(){
-        String actualRes = null;
-        long startTime = 0;
-        long estimatedTime;
-        int maxTimeout = 3;
-        try {
-            startTime = System.currentTimeMillis();
-            actualRes = future.get(maxTimeout, TimeUnit.SECONDS);
-        }
-        catch (Exception e){
-            assertEquals(actualRes, null);
-            estimatedTime = System.currentTimeMillis() - startTime;
-            assertTrue(TimeUnit.MILLISECONDS.toSeconds(estimatedTime) <= maxTimeout);
-        }
-        // if no exception thrown the tests fails
-        assertTrue(false);
+    public void testGetResultTimeoutNoResolve() {
+        String actualRes = future.get(500, TimeUnit.MILLISECONDS);
+        assertNull(actualRes, "future get return different result than null: " + actualRes);
+        assertFalse(future.isDone(), "parameter 'isDone' = true, not as expected");
     }
 
     /***
@@ -100,22 +75,32 @@ public class FutureTest {
      * while the func waits, resolve the future result
      */
     @Test
-    public void testGetResultBeforeResolve(){
-        try{
-            Thread resolve = new Thread(() -> {
-                try {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(3));
-                    future.resolve(expectedRes);
-                } catch (InterruptedException e) {
-                    assertTrue(false, "InterruptedException was thrown from resolve thread");
-                }
-            });
-            resolve.start();
-            future.get(5, TimeUnit.SECONDS);
-        }
-        catch (Exception e){
-            // if exception is throw the test fails
-            assertTrue(false);
-        }
+    public void testGetResultBeforeResolve() {
+        Thread resolve = new Thread(() -> {
+            try {
+                Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+                future.resolve(expectedRes);
+            } catch (InterruptedException e) {
+                fail("InterruptedException was thrown from resolve thread");
+            }
+        });
+        resolve.start();
+        String actualRes = future.get(2, TimeUnit.SECONDS);
+        assertTrue(future.isDone(),"parameter 'isDone' = false, not as expected");
+        assertEquals(expectedRes, actualRes,"expected to different result. expected: " + expectedRes +
+                ", actual: " + actualRes);
+    }
+
+    /***
+     * resolve the future with result=null and check if the future return the expected result
+     * and mark is done as true
+     */
+    @Test
+    public void testResolveNull(){
+        assertFalse(future.isDone(), "parameter 'isDone' = true, not as expected");
+        future.resolve(null);
+        String actualRes = future.get();
+        assertNull(actualRes, "future get return different result than null: " + actualRes);
+        assertTrue(future.isDone(),"parameter 'isDone' = false, not as expected");
     }
 }
