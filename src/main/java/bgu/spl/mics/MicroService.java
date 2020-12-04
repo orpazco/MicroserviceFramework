@@ -26,7 +26,7 @@ public abstract class MicroService implements Runnable {
     //region Members
     private MessageBus messageBus;
     private String name;
-    private Map<Class, Callback> callbackMap;
+    private Map<Class<? extends Message>, Callback> callbackMap;
     private boolean notTerminated;
     //endregion
 
@@ -163,7 +163,7 @@ public abstract class MicroService implements Runnable {
             try {
                 Message messageToHandle =  messageBus.awaitMessage(this);
                 if (callbackMap.containsKey(messageToHandle.getClass())){
-                    callbackMap.get(messageToHandle.getClass()).call(this);
+                    callbackMap.get(messageToHandle.getClass()).call(messageToHandle);
                 }
                 // not handle the interrupted exception
             } catch (InterruptedException e) {}
