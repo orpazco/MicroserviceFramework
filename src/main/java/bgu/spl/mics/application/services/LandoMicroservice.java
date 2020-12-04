@@ -1,6 +1,7 @@
 package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
+import bgu.spl.mics.application.passiveObjects.Diary;
 
 /**
  * LandoMicroservice
@@ -9,8 +10,8 @@ import bgu.spl.mics.MicroService;
  */
 public class LandoMicroservice  extends MicroService {
 
-    public LandoMicroservice(long duration) {
-        super("Lando");
+    public LandoMicroservice(long duration, Diary diary) {
+        super("Lando", diary);
     }
 
     @Override

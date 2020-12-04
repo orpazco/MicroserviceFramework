@@ -5,6 +5,7 @@ import java.util.List;
 
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.passiveObjects.Attack;
+import bgu.spl.mics.application.passiveObjects.Diary;
 
 /**
  * LeiaMicroservices Initialized with Attack objects, and sends them as  {@link bgu.spl.mics.application.messages.AttackEvents}.
@@ -17,8 +18,8 @@ import bgu.spl.mics.application.passiveObjects.Attack;
 public class LeiaMicroservice extends MicroService {
 	private Attack[] attacks;
 	
-    public LeiaMicroservice(Attack[] attacks) {
-        super("Leia");
+    public LeiaMicroservice(Attack[] attacks, Diary diary) {
+        super("Leia", diary);
 		this.attacks = attacks;
     }
 
