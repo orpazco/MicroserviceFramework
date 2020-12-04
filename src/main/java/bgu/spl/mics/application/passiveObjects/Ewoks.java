@@ -34,30 +34,37 @@ public class Ewoks {
     }
 
     public synchronized void acquireResources(Collection<Integer> ewoks) {
-        // check if the amount of ewoks to require is available or the thread ask for will need
-        // to wait until resources will be released
-        Iterator<Integer> iterator = ewoks.iterator();
-        while (iterator.hasNext()){
-            int ewokSerial = iterator.next();
-            if (!ewoksArr[ewokSerial].isAvailable()){
-                try {
-                    wait();
-                    // initialize the iterator again to check the resources from the beginning
-                    iterator = ewoks.iterator();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        // check if all the needed ewoks is available, if not wait until release & notify
+        while (!isAvailable(ewoks)){
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
         // if there are enough resources than acquire them
-        iterator = ewoks.iterator();
-        while (iterator.hasNext()) {
-            int ewokSerial = iterator.next();
+        for (int ewokSerial : ewoks) {
             ewoksArr[ewokSerial].acquire();
         }
     }
 
     public synchronized void releaseResources(Collection<Integer> ewoks){
+        // release all the given resources and notify
+        for (int ewokSerial : ewoks) {
+            ewoksArr[ewokSerial].release();
+        }
+        notify();
+    }
 
+    /**
+     * for each ewok check if it is available to acquire
+     * @param ewoks serials of all the needed ewoks
+     * @return true if all of them are available, false otherwise
+     */
+    private boolean isAvailable(Collection<Integer> ewoks){
+        for (int ewokSerial : ewoks) {
+            if (!ewoksArr[ewokSerial].isAvailable()) return false;
+        }
+        return true;
     }
 }
