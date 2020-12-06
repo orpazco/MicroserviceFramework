@@ -5,7 +5,7 @@ import bgu.spl.mics.MicroService;
 public class TestMic1 extends MicroService {
 
     public TestMic1(){
-        super("dummyBCast1");
+        super("dummyBCast1", null);
     }
 
     protected void initialize(){

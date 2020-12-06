@@ -1,5 +1,7 @@
 package bgu.spl.mics;
 
+import bgu.spl.mics.application.passiveObjects.Diary;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,17 +28,19 @@ public abstract class MicroService implements Runnable {
     //region Members
     private MessageBus messageBus;
     private String name;
-    private Map<Class, Callback> callbackMap;
+    private Map<Class<? extends Message>, Callback> callbackMap;
     private boolean notTerminated;
+    protected Diary diary;
     //endregion
 
     /**
      * @param name the micro-service name (used mainly for debugging purposes -
      *             does not have to be unique)
      */
-    public MicroService(String name) {
+    public MicroService(String name, Diary diary) {
         messageBus = MessageBusImpl.getInstance();
         this.name = name;
+        this.diary = diary;
         callbackMap = new HashMap<>();
         notTerminated = true;
     }
@@ -163,7 +167,7 @@ public abstract class MicroService implements Runnable {
             try {
                 Message messageToHandle =  messageBus.awaitMessage(this);
                 if (callbackMap.containsKey(messageToHandle.getClass())){
-                    callbackMap.get(messageToHandle.getClass()).call(this);
+                    callbackMap.get(messageToHandle.getClass()).call(messageToHandle);
                 }
                 // not handle the interrupted exception
             } catch (InterruptedException e) {}
