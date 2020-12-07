@@ -15,12 +15,14 @@ import bgu.spl.mics.application.passiveObjects.Diary;
  * You MAY change constructor signatures and even add new public constructors.
  */
 public class R2D2Microservice extends MicroService {
-    private long deactivationSleepDuration;
+
     private Diary diary;
+    private long deactivationSleepDuration;
 
     public R2D2Microservice(long duration, Diary diary) {
-        super("R2D2", diary);
-        deactivationSleepDuration = duration;
+        super("R2D2");
+        this.diary = diary;
+        this.deactivationSleepDuration = duration;
     }
 
     public long getDeactivationSleepDuration() {
