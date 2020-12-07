@@ -37,9 +37,9 @@ public class R2D2Microservice extends MicroService {
         subscribeEvent(DeactivationEvent.class, (event) -> {
                     try {
                         Thread.sleep(getDeactivationSleepDuration());
-                        diary.setR2D2Deactivate(System.currentTimeMillis());
+                        diary.setR2D2Deactivate(System.currentTimeMillis()); // log finish time before notifying
                         complete(event, true);
-                    } catch (InterruptedException e) {
+                    } catch (InterruptedException e) { // if sleeping interrupted
                         e.printStackTrace();
                     }
                 }
