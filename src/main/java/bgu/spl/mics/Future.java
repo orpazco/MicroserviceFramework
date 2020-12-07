@@ -1,5 +1,6 @@
 package bgu.spl.mics;
 
+import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,21 +30,32 @@ public class Future<T> {
      * 	       
      */
 	public T get() {
-        return null; 
+		long pollInterval = 50; // initial wait timer
+		long waitMultiplier = 1; // backoff timer modifier
+		while(!isDone){ // check if future resolved
+			try {
+				Thread.sleep(TimeUnit.MILLISECONDS.toMillis(pollInterval*waitMultiplier));
+				if(waitMultiplier<20)
+					waitMultiplier++; // increase backoff
+			}
+			catch (InterruptedException e) {e.printStackTrace();}
+		}
+		return result;
 	}
-	
+
 	/**
      * Resolves the result of this Future object.
      */
 	public void resolve (T result) {
-		
+		isDone = true;
+		this.result = result;
 	}
 	
 	/**
      * @return true if this object has been resolved, false otherwise
      */
 	public boolean isDone() {
-		return false;
+		return isDone;
 	}
 	
 	/**
@@ -58,7 +70,17 @@ public class Future<T> {
      *         elapsed, return null.
      */
 	public T get(long timeout, TimeUnit unit) {
-        return null;
+		long waitInterval = timeout/10; // wait for a tenth of total time between polls
+		long startTime = System.currentTimeMillis();
+		while(!isDone||((System.currentTimeMillis()-startTime)>=unit.toMillis(timeout))){ // check if not timed out or future resolved
+			try {
+			Thread.sleep(unit.toMillis(waitInterval));
+			}
+			catch (InterruptedException e) {e.printStackTrace();}
+		}
+		if (isDone)
+			return result;
+		return null;
 	}
 
 }
