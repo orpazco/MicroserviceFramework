@@ -1,13 +1,8 @@
 package bgu.spl.mics.application.services;
 
-import bgu.spl.mics.MicroService;
-import bgu.spl.mics.application.messages.AttackEvent;
-import bgu.spl.mics.application.messages.TerminationEvent;
+import bgu.spl.mics.application.messages.FinishAttackEvent;
 import bgu.spl.mics.application.passiveObjects.Diary;
 import bgu.spl.mics.application.passiveObjects.Ewoks;
-
-import java.util.List;
-
 
 /**
  * C3POMicroservices is in charge of the handling {@link bgu.spl.mics.application.messages.AttackEvent}.
@@ -17,33 +12,16 @@ import java.util.List;
  * You can add private fields and public methods to this class.
  * You MAY change constructor signatures and even add new public constructors.
  */
-public class C3POMicroservice extends MicroService {
-    private Diary diary;
-    private Ewoks ewoks;
+public class C3POMicroservice extends AttackMicroservice {
 
     public C3POMicroservice(Diary diary, Ewoks ewoks) {
-        super("C3PO");
-        this.diary = diary;
-        this.ewoks = ewoks;
+        super("C3PO", diary, ewoks);
     }
 
     @Override
     protected void initialize() {
-        subscribeBroadcast(TerminationEvent.class, (event)-> {
-            terminate();
-        });
-        subscribeEvent(AttackEvent.class, (event)->{
-            // ask for resources
-            List<Integer> serials = event.getSerials();
-            ewoks.acquireResources(serials);
-            try {
-                Thread.sleep(event.getDuration());
-                complete(event, true);
-                // call to diary and send finish- a timestamp indicating when C3PO finished the execution of all his attacks.
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        subscribeEvent(FinishAttackEvent.class, (event)-> diary.incTotalAttacks());
+        subscribeToAttackEvent();
     }
 
     @Override
