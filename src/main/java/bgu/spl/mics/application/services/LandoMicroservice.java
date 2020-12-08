@@ -2,7 +2,6 @@ package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.BombDestroyerEvent;
-import bgu.spl.mics.application.messages.TerminationEvent;
 import bgu.spl.mics.application.passiveObjects.Diary;
 
 /**
@@ -22,10 +21,6 @@ public class LandoMicroservice  extends MicroService {
 
     @Override
     protected void initialize() {
-       subscribeBroadcast(TerminationEvent.class, (event) -> {
-           terminate();
-           diary.setLandoTerminate(System.currentTimeMillis());
-       });
        subscribeEvent(BombDestroyerEvent.class, (event)->{
            try {
                Thread.sleep(duration);
@@ -38,6 +33,6 @@ public class LandoMicroservice  extends MicroService {
 
     @Override
     protected void finish() {
-
+        diary.setLandoTerminate(System.currentTimeMillis());
     }
 }
