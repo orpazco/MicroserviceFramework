@@ -140,6 +140,11 @@ public abstract class MicroService implements Runnable {
     protected abstract void initialize();
 
     /**
+     * this method is called once when the event loop ends, and update the diary.
+     */
+    protected abstract void finish();
+
+    /**
      * Signals the event loop that it must terminate after handling the current
      * message.
      */
@@ -170,5 +175,6 @@ public abstract class MicroService implements Runnable {
                 // not handle the interrupted exception
             } catch (InterruptedException e) {}
         }
+        finish();
     }
 }

@@ -31,7 +31,6 @@ public class C3POMicroservice extends MicroService {
     protected void initialize() {
         subscribeBroadcast(TerminationEvent.class, (event)-> {
             terminate();
-            diary.setC3POTerminate(System.currentTimeMillis());
         });
         subscribeEvent(AttackEvent.class, (event)->{
             // ask for resources
@@ -39,10 +38,16 @@ public class C3POMicroservice extends MicroService {
             ewoks.acquireResources(serials);
             try {
                 Thread.sleep(event.getDuration());
+                complete(event, true);
                 // call to diary and send finish- a timestamp indicating when C3PO finished the execution of all his attacks.
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         });
+    }
+
+    @Override
+    protected void finish() {
+        diary.setC3POTerminate(System.currentTimeMillis());
     }
 }

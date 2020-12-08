@@ -25,4 +25,9 @@ public class HanSoloMicroservice extends MicroService {
     protected void initialize() {
 
     }
+
+    @Override
+    protected void finish() {
+
+    }
 }

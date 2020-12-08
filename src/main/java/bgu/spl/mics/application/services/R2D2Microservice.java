@@ -24,4 +24,9 @@ public class R2D2Microservice extends MicroService {
     protected void initialize() {
 
     }
+
+    @Override
+    protected void finish() {
+
+    }
 }
