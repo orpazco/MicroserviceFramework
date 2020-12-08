@@ -53,7 +53,7 @@ public class Ewoks {
         for (int ewokSerial : ewoks) {
             ewoksArr[ewokSerial].release();
         }
-        notify();
+        notifyAll();
     }
 
     /**

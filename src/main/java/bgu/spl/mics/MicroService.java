@@ -183,6 +183,7 @@ public abstract class MicroService implements Runnable {
         }
 
         // update the proper parameter in diary about finish this thread
+        messageBus.unregister(this);
         finish();
     }
 }
