@@ -11,4 +11,8 @@ public class TestMic2 extends MicroService {
     protected void initialize(){
     }
 
+    @Override
+    protected void finish() {
+    }
+
 }

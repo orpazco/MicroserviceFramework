@@ -1,6 +1,6 @@
 package bgu.spl.mics;
 
-import bgu.spl.mics.application.passiveObjects.Diary;
+import bgu.spl.mics.application.messages.TerminationEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -140,6 +140,11 @@ public abstract class MicroService implements Runnable {
     protected abstract void initialize();
 
     /**
+     * this method is called once when the event loop ends, and update the diary.
+     */
+    protected abstract void finish();
+
+    /**
      * Signals the event loop that it must terminate after handling the current
      * message.
      */
@@ -161,7 +166,10 @@ public abstract class MicroService implements Runnable {
      */
     @Override
     public final void run() {
+        // register the microservice and subscribe to terminate broadcast event
         messageBus.register(this);
+
+        // init and start the event loop
         initialize();
         while (notTerminated){
             try {
@@ -172,5 +180,9 @@ public abstract class MicroService implements Runnable {
                 // not handle the interrupted exception
             } catch (InterruptedException e) {}
         }
+
+        // update the proper parameter in diary about finish this thread
+        messageBus.unregister(this);
+        finish();
     }
 }

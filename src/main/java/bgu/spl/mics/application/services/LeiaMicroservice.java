@@ -44,4 +44,9 @@ public class LeiaMicroservice extends MicroService {
             AttackEvent currAttack =  new AttackEvent(attackInstructions);
         }
     }
+
+    @Override
+    protected void finish() {
+
+    }
 }
