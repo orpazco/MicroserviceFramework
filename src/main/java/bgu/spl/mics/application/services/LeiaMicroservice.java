@@ -2,10 +2,7 @@ package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.Future;
 import bgu.spl.mics.MicroService;
-import bgu.spl.mics.application.messages.AttackEvent;
-import bgu.spl.mics.application.messages.DeactivationEvent;
-import bgu.spl.mics.application.messages.NoMoreAttacks;
-import bgu.spl.mics.application.messages.TerminationEvent;
+import bgu.spl.mics.application.messages.*;
 import bgu.spl.mics.application.passiveObjects.Attack;
 import bgu.spl.mics.application.passiveObjects.Diary;
 
@@ -24,32 +21,15 @@ import java.util.concurrent.TimeUnit;
 public class LeiaMicroservice extends MicroService {
     private Attack[] attacks;
     private Diary diary;
-    private int resolvedAttacks;
     private HashMap<AttackEvent, Future<Boolean>> attackRecords;
-    private int longestAttackTime;
     private int bufferMultiplier;
-    private int R2D2Time;
 
 
     public LeiaMicroservice(Attack[] attacks, Diary diary) {
         super("Leia");
         this.attacks = attacks;
         this.diary = diary;
-        resolvedAttacks = 0;
-        longestAttackTime = attacks[0].getDuration();
-        bufferMultiplier=2; // how long of a buffer to take from the longest message
-        R2D2Time = 0; // TODO get r2d2's timer
-    }
-
-    public int getResolvedAttacks() {
-        return resolvedAttacks;
-    }
-
-    private void findLongestAttackTime(){
-        for (Attack attackInstructions : attacks) {
-            if (attackInstructions.getDuration()>longestAttackTime)
-                longestAttackTime = attackInstructions.getDuration();
-        }
+        bufferMultiplier = 2; // how long of a buffer to take from the longest message //TODO reconsider blocking instead of waiting
     }
 
     public void orchestrateAttacks() {
@@ -60,8 +40,7 @@ public class LeiaMicroservice extends MicroService {
         }
         sendBroadcast(new NoMoreAttacks()); // tell attackers no more attack will be sent
         for (AttackEvent attack : attackRecords.keySet()) { // wait for each attack to finish (event to be resolved)
-            if(attackRecords.get(attack).get(longestAttackTime*bufferMultiplier, TimeUnit.MILLISECONDS)) // wait 5 seconds for failed get
-                resolvedAttacks++;
+            attackRecords.get(attack).get(); // wait until the attack is finished
         }
     }
 
@@ -72,12 +51,11 @@ public class LeiaMicroservice extends MicroService {
             terminate();
             diary.setLeiaTerminate(System.currentTimeMillis());
         });
-        // wait for everyone to go online TODO check-in messages
+        // wait for everyone to go online TODO check-in messages - with timeout
         orchestrateAttacks();
-        if (resolvedAttacks==attacks.length){ // check if all attacks were successful
-            Future<Boolean> deactivation = sendEvent(new DeactivationEvent());
-            deactivation.get(R2D2Time*bufferMultiplier,TimeUnit.MILLISECONDS);
-        }
-        // TODO decide on what to do if not all attacks were successful
+        Future<Boolean> deactivation = sendEvent(new DeactivationEvent()); // after resolving all attack events - send deactivation event
+        deactivation.get(); // wait for R2D2 to finish deactivation
+        sendEvent(new BombDestroyerEvent());
     }
 }
+

@@ -13,14 +13,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * Only private fields and methods can be added to this class.
  */
 public class MessageBusImpl implements MessageBus {
-	private static MessageBusImpl messageBusInstance = null;
-	private ConcurrentHashMap<Class<? extends MicroService>, Queue<Message>> messageQueues;
+
+	private static class SingletonHolder{ // a class for holding the singleton instance
+		private static MessageBusImpl instance = new MessageBusImpl();
+	}
+
+	private ConcurrentHashMap<Class<? extends MicroService>, Queue<Message>> messageQueues; // TODO change to blockingQueue
 	private ConcurrentHashMap<Class<? extends Message>, HashSet<Class<? extends MicroService>>> subscriptionMap;
+	private ConcurrentHashMap<Class<? extends Message>, HashSet<Class<? extends MicroService>>> ReverseSubscriptionMap;
 	private HashMap<Event, Future> futures;
 	private final Object regLock;
 	private final Object subLock;
 	private int regVersion;
 	private int subVersion;
+
 
 	private MessageBusImpl(){
 		messageQueues =  new ConcurrentHashMap<>();
@@ -33,13 +39,7 @@ public class MessageBusImpl implements MessageBus {
 	}
 
 	public static MessageBusImpl getInstance(){
-		if (messageBusInstance==null){
-			synchronized (MessageBusImpl.class) { //synchronize while using Class object as monitor
-				if(messageBusInstance==null)
-					messageBusInstance = new MessageBusImpl();
-			}
-		}
-		return messageBusInstance;
+		return SingletonHolder.instance;
 	}
 
 	@Override
@@ -81,6 +81,7 @@ public class MessageBusImpl implements MessageBus {
 	public <T> void complete(Event<T> e, T result) {
 		// resolve the associated future with result
 		futures.get(e).resolve(result); // TODO maybe notify sender?
+		futures.get(e).notifyAll();
 
 	}
 
@@ -174,8 +175,10 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
-		// TODO make blocking
+		// TODO make blocking - implement blocking queue?
 		// attempt to retrieve a message from m's queue
+		if(!messageQueues.containsKey(m.getClass()))
+			throw new IllegalStateException();
 		// use the callback
 		return null;
 	}

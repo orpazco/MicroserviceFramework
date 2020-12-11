@@ -20,27 +20,24 @@ public class Future<T> {
 	 */
 	public Future() {
 	}
-	
+
 	/**
-     * retrieves the result the Future object holds if it has been resolved.
-     * This is a blocking method! It waits for the computation in case it has
-     * not been completed.
-     * <p>
-     * @return return the result of type T if it is available, if not wait until it is available.
-     * 	       
-     */
-	public T get() {
-		long pollInterval = 50; // initial wait timer
-		long waitMultiplier = 1; // backoff timer modifier
-		while(!isDone){ // check if future resolved
+	 * retrieves the result the Future object holds if it has been resolved.
+	 * This is a blocking method! It waits for the computation in case it has
+	 * not been completed.
+	 * <p>
+	 * @return return the result of type T if it is available, if not wait until it is available.
+	 *
+	 */
+	public synchronized T  get() {
+		while (!isDone) { // check if future resolved
 			try {
-				Thread.sleep(TimeUnit.MILLISECONDS.toMillis(pollInterval*waitMultiplier));
-				if(waitMultiplier<20)
-					waitMultiplier++; // increase backoff
+				wait();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
-			catch (InterruptedException e) {e.printStackTrace();}
 		}
-		return result;
+			return result;
 	}
 
 	/**
@@ -50,14 +47,14 @@ public class Future<T> {
 		isDone = true;
 		this.result = result;
 	}
-	
+
 	/**
      * @return true if this object has been resolved, false otherwise
      */
 	public boolean isDone() {
 		return isDone;
 	}
-	
+
 	/**
      * retrieves the result the Future object holds if it has been resolved,
      * This method is non-blocking, it has a limited amount of time determined
@@ -69,18 +66,17 @@ public class Future<T> {
      * 	       wait for {@code timeout} TimeUnits {@code unit}. If time has
      *         elapsed, return null.
      */
-	public T get(long timeout, TimeUnit unit) {
-		long waitInterval = timeout/10; // wait for a tenth of total time between polls
+	public synchronized T get(long timeout, TimeUnit unit) {
 		long startTime = System.currentTimeMillis();
-		while(!isDone||((System.currentTimeMillis()-startTime)>=unit.toMillis(timeout))){ // check if not timed out or future resolved
+		while (!isDone || ((System.currentTimeMillis() - startTime) >= unit.toMillis(timeout))) { // check if not timed out or future resolved
 			try {
-			Thread.sleep(unit.toMillis(waitInterval));
+				wait(unit.toMillis(timeout));
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
-			catch (InterruptedException e) {e.printStackTrace();}
 		}
 		if (isDone)
 			return result;
 		return null;
 	}
-
 }
