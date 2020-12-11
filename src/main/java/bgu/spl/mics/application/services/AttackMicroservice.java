@@ -2,7 +2,7 @@ package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.AttackEvent;
-import bgu.spl.mics.application.messages.FinishAttackEvent;
+import bgu.spl.mics.application.messages.TerminationEvent;
 import bgu.spl.mics.application.passiveObjects.Diary;
 import bgu.spl.mics.application.passiveObjects.Ewoks;
 
@@ -26,6 +26,7 @@ public abstract class AttackMicroservice extends MicroService {
     protected abstract void finish();
 
     protected void initialize(){
+        subscribeToTerminationEvent();
         subscribeToAttackEvent();
     }
 
@@ -38,11 +39,15 @@ public abstract class AttackMicroservice extends MicroService {
                 Thread.sleep(event.getDuration());
                 complete(event, true);
                 // record the attack
-                sendEvent(new FinishAttackEvent());
-                // call to diary and send finish- a timestamp indicating when C3PO finished the execution of all his attacks.
+                diary.incTotalAttacks();
+                // TODO: call to diary and send finish- a timestamp indicating when C3PO/hansolo finished the execution of all his attacks.
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         });
+    }
+
+    protected void subscribeToTerminationEvent(){
+        subscribeBroadcast(TerminationEvent.class, (event)-> terminate());
     }
 }

@@ -168,7 +168,6 @@ public abstract class MicroService implements Runnable {
     public final void run() {
         // register the microservice and subscribe to terminate broadcast event
         messageBus.register(this);
-        subscribeBroadcast(TerminationEvent.class, (event)-> terminate());
 
         // init and start the event loop
         initialize();

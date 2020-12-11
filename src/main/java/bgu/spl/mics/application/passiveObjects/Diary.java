@@ -29,12 +29,20 @@ public class Diary {
     }
 
     public void setTotalAttacks(int totalAttacks) {
-        this.totalAttacks.getAndSet(totalAttacks);
+        boolean changed = false;
+        while (!changed){
+            int currentTotalAttacks = this.totalAttacks.get();
+            changed = this.totalAttacks.compareAndSet(currentTotalAttacks, totalAttacks);
+        }
     }
 
-    // raise total attacks in 1
+    // raise total attacks by 1
     public void incTotalAttacks(){
-        this.totalAttacks.incrementAndGet();
+        boolean changed = false;
+        while (!changed){
+            int currentTotalAttacks = this.totalAttacks.get();
+            changed = this.totalAttacks.compareAndSet(currentTotalAttacks, currentTotalAttacks+1);
+        }
     }
 
     public long getHanSoloFinish() {
