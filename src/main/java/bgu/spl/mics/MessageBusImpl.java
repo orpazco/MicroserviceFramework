@@ -19,10 +19,10 @@ public class MessageBusImpl implements MessageBus {
 		private static MessageBusImpl instance = new MessageBusImpl();
 	}
 
-	private ConcurrentHashMap<MicroService, BlockingQueue<Message>> messageQueues;
-	private ConcurrentHashMap<Class<? extends Message>, HashSet<MicroService>> subscriptionMap;
-	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap;
-	private HashMap<Event, Future> futures;
+	private ConcurrentHashMap<MicroService, BlockingQueue<Message>> messageQueues; // a structure that holds registered mics as keys and their message queues as values
+	private ConcurrentHashMap<Class<? extends Message>, HashSet<MicroService>> subscriptionMap; // a structure that maps event types to the mics that are subscribed to it
+	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap; // a structure that maps mics to their subscriptions
+	private HashMap<Event, Future> futures; // a structure mapping events to their respective future events
 	private final ReadWriteLock readWriteLock;
 	private final Lock readLock;
 	private final Lock writeLock;
@@ -215,7 +215,6 @@ public class MessageBusImpl implements MessageBus {
 			throw new IllegalStateException();
 		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
 		Message message = messageQueues.get(m).take();
-		// use the callback
 		return message;
 	}
 }
