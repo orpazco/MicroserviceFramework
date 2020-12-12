@@ -64,5 +64,10 @@ public class LeiaMicroservice extends MicroService {
         deactivation.get(); // wait for R2D2 to finish deactivation
         sendEvent(new BombDestroyerEvent());
     }
+
+    @Override
+    protected void finish() {
+
+    }
 }
 

@@ -32,10 +32,7 @@ public class R2D2Microservice extends MicroService {
 
     @Override
     protected void initialize() {
-
-        subscribeBroadcast(TerminationEvent.class, (event) -> {
-                    terminate();
-                    diary.setR2D2Terminate(System.currentTimeMillis());});
+        subscribeBroadcast(TerminationEvent.class, (event) -> terminate());
         subscribeEvent(DeactivationEvent.class, (event) -> {
                     try {
                         Thread.sleep(getDeactivationSleepDuration());
@@ -45,9 +42,11 @@ public class R2D2Microservice extends MicroService {
                         e.printStackTrace();
                     }
                 }
-
         );
+    }
 
-
+    @Override
+    protected void finish() {
+        diary.setR2D2Terminate(System.currentTimeMillis());
     }
 }
