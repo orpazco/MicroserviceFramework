@@ -1,5 +1,6 @@
 package bgu.spl.mics.application.services;
 
+import bgu.spl.mics.Event;
 import bgu.spl.mics.Future;
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.*;
@@ -22,6 +23,8 @@ public class LeiaMicroservice extends MicroService {
     private Attack[] attacks;
     private Diary diary;
     private HashMap<AttackEvent, Future<Boolean>> attackRecords;
+    private HashMap<AttackEvent, Future<Boolean>> teamCheckIn;
+    private HashMap<Class<? extends MicroService>, Class<? extends Event>> messageIndex;
     private int bufferMultiplier;
 
 
@@ -43,6 +46,14 @@ public class LeiaMicroservice extends MicroService {
             attackRecords.get(attack).get(); // wait until the attack is finished
         }
     }
+
+//    public void probeTeamMate(Class<? extends Event> message, long timeout) {
+//        try {
+//            Future<Boolean> currFuture = sendEvent(message.newInstance());
+//        }
+//        catch (IllegalAccessException | InstantiationException e){e.printStackTrace();}
+//
+//    }
 
 
     @Override
