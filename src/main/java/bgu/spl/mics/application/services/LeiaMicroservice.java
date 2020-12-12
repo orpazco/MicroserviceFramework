@@ -23,16 +23,13 @@ public class LeiaMicroservice extends MicroService {
     private Attack[] attacks;
     private Diary diary;
     private HashMap<AttackEvent, Future<Boolean>> attackRecords;
-    private HashMap<AttackEvent, Future<Boolean>> teamCheckIn;
-    private HashMap<Class<? extends MicroService>, Class<? extends Event>> messageIndex;
-    private int bufferMultiplier;
 
 
     public LeiaMicroservice(Attack[] attacks, Diary diary) {
         super("Leia");
         this.attacks = attacks;
         this.diary = diary;
-        bufferMultiplier = 2; // how long of a buffer to take from the longest message //TODO reconsider blocking instead of waiting
+        attackRecords = new HashMap<>();
     }
 
     public void orchestrateAttacks() {
@@ -41,28 +38,20 @@ public class LeiaMicroservice extends MicroService {
             Future<Boolean> currFuture = sendEvent(currAttack);
             attackRecords.put(currAttack, currFuture);// map attacks to futures
         }
-        sendBroadcast(new NoMoreAttacks()); // tell attackers no more attack will be sent
+        sendBroadcast(new NoMoreAttacks()); // tell attackers no more attacks will be sent
         for (AttackEvent attack : attackRecords.keySet()) { // wait for each attack to finish (event to be resolved)
             attackRecords.get(attack).get(); // wait until the attack is finished
         }
     }
 
-//    public void probeTeamMate(Class<? extends Event> message, long timeout) {
-//        try {
-//            Future<Boolean> currFuture = sendEvent(message.newInstance());
-//        }
-//        catch (IllegalAccessException | InstantiationException e){e.printStackTrace();}
-//
-//    }
-
 
     @Override
     protected void initialize() {
+        // wait for everyone to go online TODO this happens with thread tools - CountdownLatch
         subscribeBroadcast(TerminationEvent.class, (event) -> {
             terminate();
             diary.setLeiaTerminate(System.currentTimeMillis());
         });
-        // wait for everyone to go online TODO check-in messages - with timeout
         orchestrateAttacks();
         Future<Boolean> deactivation = sendEvent(new DeactivationEvent()); // after resolving all attack events - send deactivation event
         deactivation.get(); // wait for R2D2 to finish deactivation
