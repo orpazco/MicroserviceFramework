@@ -1,5 +1,6 @@
 package bgu.spl.mics;
 
+import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -19,33 +20,41 @@ public class Future<T> {
 	 */
 	public Future() {
 	}
-	
+
 	/**
-     * retrieves the result the Future object holds if it has been resolved.
-     * This is a blocking method! It waits for the computation in case it has
-     * not been completed.
-     * <p>
-     * @return return the result of type T if it is available, if not wait until it is available.
-     * 	       
-     */
-	public T get() {
-        return null; 
+	 * retrieves the result the Future object holds if it has been resolved.
+	 * This is a blocking method! It waits for the computation in case it has
+	 * not been completed.
+	 * <p>
+	 * @return return the result of type T if it is available, if not wait until it is available.
+	 *
+	 */
+	public synchronized T  get() {
+		while (!isDone) { // check if future resolved
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+			return result;
 	}
-	
+
 	/**
      * Resolves the result of this Future object.
      */
 	public void resolve (T result) {
-		
+		isDone = true;
+		this.result = result;
 	}
-	
+
 	/**
      * @return true if this object has been resolved, false otherwise
      */
 	public boolean isDone() {
-		return false;
+		return isDone;
 	}
-	
+
 	/**
      * retrieves the result the Future object holds if it has been resolved,
      * This method is non-blocking, it has a limited amount of time determined
@@ -57,8 +66,17 @@ public class Future<T> {
      * 	       wait for {@code timeout} TimeUnits {@code unit}. If time has
      *         elapsed, return null.
      */
-	public T get(long timeout, TimeUnit unit) {
-        return null;
+	public synchronized T get(long timeout, TimeUnit unit) {
+		long startTime = System.currentTimeMillis();
+		while (!isDone || ((System.currentTimeMillis() - startTime) >= unit.toMillis(timeout))) { // check if not timed out or future resolved
+			try {
+				wait(unit.toMillis(timeout));
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+		if (isDone)
+			return result;
+		return null;
 	}
-
 }

@@ -1,14 +1,15 @@
 package bgu.spl.mics.application.services;
 
+import bgu.spl.mics.Event;
 import bgu.spl.mics.Future;
 import bgu.spl.mics.MicroService;
-import bgu.spl.mics.application.messages.AttackEvent;
-import bgu.spl.mics.application.messages.TerminationEvent;
+import bgu.spl.mics.application.messages.*;
 import bgu.spl.mics.application.passiveObjects.Attack;
 import bgu.spl.mics.application.passiveObjects.Diary;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 /**
  * LeiaMicroservices Initialized with Attack objects, and sends them as  {@link bgu.spl.mics.application.messages.AttackEvent}.
@@ -19,30 +20,42 @@ import java.util.HashSet;
  * You MAY change constructor signatures and even add new public constructors.
  */
 public class LeiaMicroservice extends MicroService {
-	private Attack[] attacks;
+    private Attack[] attacks;
+    private Diary diary;
+    private HashMap<AttackEvent, Future<Boolean>> attackRecords;
 
-	private Diary diary;
-	private int resolvedAttacks;
-	private HashMap<Attack, Future> attackRecords;
-  
-  public LeiaMicroservice(Attack[] attacks, Diary diary) {
-      super("Leia");
-	this.attacks = attacks;
-  this.diary = diary;
-  resolvedAttacks = 0;
+
+    public LeiaMicroservice(Attack[] attacks, Diary diary) {
+        super("Leia");
+        this.attacks = attacks;
+        this.diary = diary;
+        attackRecords = new HashMap<>();
     }
 
+    public void orchestrateAttacks() {
+        for (Attack attackInstructions : attacks) {
+            AttackEvent currAttack = new AttackEvent(attackInstructions); // create a new attack event
+            Future<Boolean> currFuture = sendEvent(currAttack);
+            attackRecords.put(currAttack, currFuture);// map attacks to futures
+        }
+        sendBroadcast(new NoMoreAttacks()); // tell attackers no more attacks will be sent
+        for (AttackEvent attack : attackRecords.keySet()) { // wait for each attack to finish (event to be resolved)
+            attackRecords.get(attack).get(); // wait until the attack is finished
+        }
+    }
 
 
     @Override
     protected void initialize() {
-    	subscribeBroadcast(TerminationEvent.class, (event)-> {
-    	    terminate();
-    	    diary.setLeiaTerminate(System.currentTimeMillis());
+        // wait for everyone to go online TODO this happens with thread tools - CountdownLatch
+        subscribeBroadcast(TerminationEvent.class, (event) -> {
+            terminate();
+            diary.setLeiaTerminate(System.currentTimeMillis());
         });
-        for (Attack attackInstructions : attacks){
-            AttackEvent currAttack =  new AttackEvent(attackInstructions);
-        }
+        orchestrateAttacks();
+        Future<Boolean> deactivation = sendEvent(new DeactivationEvent()); // after resolving all attack events - send deactivation event
+        deactivation.get(); // wait for R2D2 to finish deactivation
+        sendEvent(new BombDestroyerEvent());
     }
 
     @Override
@@ -50,3 +63,4 @@ public class LeiaMicroservice extends MicroService {
 
     }
 }
+
