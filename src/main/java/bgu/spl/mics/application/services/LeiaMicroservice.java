@@ -54,20 +54,18 @@ public class LeiaMicroservice extends MicroService {
         try {
             latch.await();
         }
-        catch(InterruptedException e) {} // ignore interruption
-        subscribeBroadcast(TerminationEvent.class, (event) -> {
-            terminate();
-            diary.setLeiaTerminate(System.currentTimeMillis());
-        });
+        catch(InterruptedException e) {e.printStackTrace();
+        } // print interruption log
+        subscribeBroadcast(TerminationEvent.class, (event) -> terminate());
         orchestrateAttacks();
         Future<Boolean> deactivation = sendEvent(new DeactivationEvent()); // after resolving all attack events - send deactivation event
         deactivation.get(); // wait for R2D2 to finish deactivation
-        sendEvent(new BombDestroyerEvent());
+        sendEvent(new BombDestroyerEvent()); // send a bombevent to Lando
     }
 
     @Override
     protected void finish() {
-
+            diary.setLeiaTerminate(System.currentTimeMillis()); // log termination time
     }
 }
 

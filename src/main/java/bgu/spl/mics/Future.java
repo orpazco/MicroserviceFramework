@@ -34,8 +34,8 @@ public class Future<T> {
 			try {
 				wait();
 			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
+				e.printStackTrace();
+			} // print interruption log
 		}
 			return result;
 	}
@@ -71,9 +71,7 @@ public class Future<T> {
 		while (!isDone || ((System.currentTimeMillis() - startTime) >= unit.toMillis(timeout))) { // check if not timed out or future resolved
 			try {
 				wait(unit.toMillis(timeout));
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
+			} catch (InterruptedException e) {} // print interruption log
 		}
 		if (isDone)
 			return result;
