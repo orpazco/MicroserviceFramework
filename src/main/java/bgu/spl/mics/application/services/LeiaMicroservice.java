@@ -9,6 +9,7 @@ import bgu.spl.mics.application.passiveObjects.Diary;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,13 +24,15 @@ public class LeiaMicroservice extends MicroService {
     private Attack[] attacks;
     private Diary diary;
     private HashMap<AttackEvent, Future<Boolean>> attackRecords;
+    private CountDownLatch latch;
 
 
-    public LeiaMicroservice(Attack[] attacks, Diary diary) {
+    public LeiaMicroservice(Attack[] attacks, Diary diary, CountDownLatch latch) {
         super("Leia");
         this.attacks = attacks;
         this.diary = diary;
         attackRecords = new HashMap<>();
+        this.latch = latch;
     }
 
     public void orchestrateAttacks() {
@@ -47,7 +50,11 @@ public class LeiaMicroservice extends MicroService {
 
     @Override
     protected void initialize() {
-        // wait for everyone to go online TODO this happens with thread tools - CountdownLatch
+        // wait for everyone to go online
+        try {
+            latch.await();
+        }
+        catch(InterruptedException e) {} // ignore interruption
         subscribeBroadcast(TerminationEvent.class, (event) -> {
             terminate();
             diary.setLeiaTerminate(System.currentTimeMillis());
