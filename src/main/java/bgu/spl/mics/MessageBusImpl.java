@@ -44,57 +44,12 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		readLock.lock();
-		try {
-			if (isRegistered(m)) { // check if mics already registered
-				if (!isSubscribedTo(m, type)) { // the mics is not subscribed to the event type
-					readLock.unlock(); // attempt writing
-					writeLock.lock();
-					try {
-						if (!subscriptionMap.containsKey(type)) { // check if event does not exist in submap - never been used
-							subscriptionMap.put(type, new HashSet<>()); // if so then create an entry for it
-							subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
-							reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
-						} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
-							subscriptionMap.get(type).add(m); // add the mics to the event type map
-							reverseSubscriptionMap.get(m).add(type);
-						}
-					} finally {
-						writeLock.unlock();
-					}
-				}
-			}
-		} finally {
-			readLock.unlock();
-		}
+		subscribeMessage(type, m);
 	}
-
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		readLock.lock();
-		try {
-			if (isRegistered(m)) {
-				if (!isSubscribedTo(m, type)) { // the mics is not subscribed to the broadcast type
-					readLock.unlock(); // attempt writing
-					writeLock.lock();
-					try {
-						if (!subscriptionMap.containsKey(type)) { // double check - if broadcast does not exist in submap
-							subscriptionMap.put(type, new HashSet<>());
-							subscriptionMap.get(type).add(m); // add the microservice to the submap
-							reverseSubscriptionMap.get(m).add(type);
-						} else if (!subscriptionMap.get(type).contains(m)) { //check if mics registered to broadcast already
-							subscriptionMap.get(type).add(m);
-							reverseSubscriptionMap.get(m).add(type);
-						}
-					} finally {
-						writeLock.unlock();
-					}
-				}
-			}
-		} finally {
-			readLock.unlock();
-		}
+		subscribeMessage(type, m);
 	}
 
 	@Override
@@ -104,7 +59,6 @@ public class MessageBusImpl implements MessageBus {
 		futures.get(e).resolve(result);
 		futures.get(e).notifyAll();
 		futures.remove(e);
-
 	}
 
 	@Override
@@ -127,7 +81,6 @@ public class MessageBusImpl implements MessageBus {
 			readLock.unlock();
 		}
 	}
-
 
 	@Override
 	public <T> Future<T> sendEvent(Event<T> e) {
@@ -166,7 +119,6 @@ public class MessageBusImpl implements MessageBus {
 			readLock.unlock();
 		}
 	}
-
 
 	@Override
 	public void unregister(MicroService m) {
@@ -208,6 +160,31 @@ public class MessageBusImpl implements MessageBus {
 		//TODO implement RR
 	}
 
+	private void subscribeMessage(Class<? extends Message> type, MicroService m){
+		readLock.lock();
+		try {
+			if (isRegistered(m)) { // check if mics already registered
+				if (!isSubscribedTo(m, type)) { // the mics is not subscribed to the event type
+					readLock.unlock(); // attempt writing
+					writeLock.lock();
+					try {
+						if (!subscriptionMap.containsKey(type)) { // check if event does not exist in submap - never been used
+							subscriptionMap.put(type, new HashSet<>()); // if so then create an entry for it
+							subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
+							reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
+						} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
+							subscriptionMap.get(type).add(m); // add the mics to the event type map
+							reverseSubscriptionMap.get(m).add(type);
+						}
+					} finally {
+						writeLock.unlock();
+					}
+				}
+			}
+		} finally {
+			readLock.unlock();
+		}
+	}
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
