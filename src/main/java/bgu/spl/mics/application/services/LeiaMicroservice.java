@@ -9,6 +9,7 @@ import bgu.spl.mics.application.passiveObjects.Diary;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -21,13 +22,13 @@ import java.util.concurrent.TimeUnit;
  * You MAY change constructor signatures and even add new public constructors.
  */
 public class LeiaMicroservice extends MicroService {
-    private Attack[] attacks;
+    private List<Attack> attacks;
     private Diary diary;
     private HashMap<AttackEvent, Future<Boolean>> attackRecords;
     private CountDownLatch latch;
 
 
-    public LeiaMicroservice(Attack[] attacks, Diary diary, CountDownLatch latch) {
+    public LeiaMicroservice(List<Attack> attacks, Diary diary, CountDownLatch latch) {
         super("Leia");
         this.attacks = attacks;
         this.diary = diary;
