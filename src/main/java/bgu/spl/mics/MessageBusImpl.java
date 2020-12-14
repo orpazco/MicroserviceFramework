@@ -28,7 +28,7 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<Class<? extends Message>, ArrayList<MicroService>> subscriptionMap; // a structure that maps event types to the mics that are subscribed to it
 	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap; // a structure that maps mics to their subscriptions
 	private HashMap<Event, Future> futures; // a structure mapping events to their respective future events
-	private Map<Class<? extends Event>, AtomicInteger> indexList;
+	private Map<Class<? extends Message>, AtomicInteger> indexList;
 	private ConcurrentHashMap<Class<? extends Event>, ConcurrentLinkedQueue<MicroService>> micsQueue; // queue for round robin
 	private final Lock readLock;
 	private final Lock writeLock;
@@ -43,6 +43,7 @@ public class MessageBusImpl implements MessageBus {
 		readLock = readWriteLock.readLock();
 		writeLock = readWriteLock.writeLock();
 		micsQueue = new ConcurrentHashMap<>();
+		indexList = new HashMap<>();
 	}
 
 	public static MessageBusImpl getInstance() {
@@ -63,8 +64,11 @@ public class MessageBusImpl implements MessageBus {
 	@SuppressWarnings("unchecked")
 	public <T> void complete(Event<T> e, T result) {
 		// resolve the associated future with result
-		futures.get(e).resolve(result);
-		futures.get(e).notifyAll();
+		Future f = futures.get(e);
+		synchronized (f) {
+			futures.get(e).resolve(result);
+			futures.get(e).notifyAll();
+		}
 		futures.remove(e);
 	}
 
@@ -78,6 +82,7 @@ public class MessageBusImpl implements MessageBus {
 				try {
 					addBroadcastToQueues(b);
 				} finally {
+					readLock.lock();
 					writeLock.unlock();
 				}
 			}
@@ -117,6 +122,7 @@ public class MessageBusImpl implements MessageBus {
 						reverseSubscriptionMap.put(m, new HashSet<>());
 					}
 				} finally {
+					readLock.lock();
 					writeLock.unlock();
 				}
 			}
@@ -142,6 +148,7 @@ public class MessageBusImpl implements MessageBus {
 						reverseSubscriptionMap.remove(m); // remove the mics  reverse record from the message bus
 					}
 				} finally {
+					readLock.lock();
 					writeLock.unlock();
 				}
 			}
@@ -193,11 +200,13 @@ public class MessageBusImpl implements MessageBus {
 							subscriptionMap.put(type, new ArrayList<>()); // if so then create an entry for it
 							subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
 							reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
+							indexList.put(type, new AtomicInteger(0));
 						} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
 							subscriptionMap.get(type).add(m); // add the mics to the event type map
 							reverseSubscriptionMap.get(m).add(type);
 						}
 					} finally {
+						readLock.lock();
 						writeLock.unlock();
 					}
 				}
@@ -220,6 +229,9 @@ public class MessageBusImpl implements MessageBus {
 			throw new IllegalStateException();
 		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
 		Message message = messageQueues.get(m).take();
+		// TODO LOG DEBUG
+		System.out.println("service: " + m.getName() + " took: " + message.getClass().toString() + " at: " + System.currentTimeMillis() );
+		// TODO LOG DEBUG
 		return message;
 	}
 }

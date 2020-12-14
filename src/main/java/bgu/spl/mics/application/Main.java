@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /** This is the Main class of the application. You should parse the input file,
  * create the different components of the application, and run the system.
@@ -21,6 +22,8 @@ public class Main {
 	private static final String PATH = "input.json" ;
 
 	public static void main(String[] args) {
+		long begin = System.currentTimeMillis();
+		System.out.println("start: " + begin);
 		CountDownLatch latch = new CountDownLatch(4);
 		FlowData flowData = null;
 		try {
@@ -43,11 +46,15 @@ public class Main {
 			executor.execute(mics);
 		executor.shutdown();
 		try {
+			executor.awaitTermination(70, TimeUnit.SECONDS);
 			JsonHandler.serialize(diary,"out.json");
-		} catch (IOException e) {
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
-
+		long end = System.currentTimeMillis();
+		System.out.print("end: " + end);
+		long total = end-begin;
+		System.out.print("\ntotal: " + total);
 
 	}
 }
