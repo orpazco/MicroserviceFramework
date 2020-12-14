@@ -1,5 +1,6 @@
 package bgu.spl.mics.application.services;
 
+import bgu.spl.mics.application.messages.NoMoreAttacks;
 import bgu.spl.mics.application.passiveObjects.Diary;
 import bgu.spl.mics.application.passiveObjects.Ewoks;
 
@@ -23,4 +24,9 @@ public class C3POMicroservice extends AttackMicroservice {
     protected void finish() {
         diary.setC3POTerminate(System.currentTimeMillis());
     }
+
+    @Override
+    protected void subscribeToNoMoreAttacksEvent() {
+        subscribeBroadcast(NoMoreAttacks.class, (e)-> diary.setC3POFinish(System.currentTimeMillis()));
+    };
 }
