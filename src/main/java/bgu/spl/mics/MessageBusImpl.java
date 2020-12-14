@@ -1,8 +1,13 @@
 package bgu.spl.mics;
 
+import sun.applet.resources.MsgAppletViewer_zh_TW;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -20,10 +25,11 @@ public class MessageBusImpl implements MessageBus {
 	}
 
 	private ConcurrentHashMap<MicroService, BlockingQueue<Message>> messageQueues; // a structure that holds registered mics as keys and their message queues as values
-	private ConcurrentHashMap<Class<? extends Message>, HashSet<MicroService>> subscriptionMap; // a structure that maps event types to the mics that are subscribed to it
+	private ConcurrentHashMap<Class<? extends Message>, ArrayList<MicroService>> subscriptionMap; // a structure that maps event types to the mics that are subscribed to it
 	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap; // a structure that maps mics to their subscriptions
 	private HashMap<Event, Future> futures; // a structure mapping events to their respective future events
-	private final ReadWriteLock readWriteLock;
+	private Map<Class<? extends Event>, AtomicInteger> indexList;
+	private ConcurrentHashMap<Class<? extends Event>, ConcurrentLinkedQueue<MicroService>> micsQueue; // queue for round robin
 	private final Lock readLock;
 	private final Lock writeLock;
 
@@ -33,9 +39,10 @@ public class MessageBusImpl implements MessageBus {
 		subscriptionMap = new ConcurrentHashMap<>();
 		reverseSubscriptionMap = new ConcurrentHashMap<>();
 		futures = new HashMap<>();
-		readWriteLock = new ReentrantReadWriteLock();
+		ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 		readLock = readWriteLock.readLock();
 		writeLock = readWriteLock.writeLock();
+		micsQueue = new ConcurrentHashMap<>();
 	}
 
 	public static MessageBusImpl getInstance() {
@@ -44,57 +51,12 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		readLock.lock();
-		try {
-			if (isRegistered(m)) { // check if mics already registered
-				if (!isSubscribedTo(m, type)) { // the mics is not subscribed to the event type
-					readLock.unlock(); // attempt writing
-					writeLock.lock();
-					try {
-						if (!subscriptionMap.containsKey(type)) { // check if event does not exist in submap - never been used
-							subscriptionMap.put(type, new HashSet<>()); // if so then create an entry for it
-							subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
-							reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
-						} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
-							subscriptionMap.get(type).add(m); // add the mics to the event type map
-							reverseSubscriptionMap.get(m).add(type);
-						}
-					} finally {
-						writeLock.unlock();
-					}
-				}
-			}
-		} finally {
-			readLock.unlock();
-		}
+		subscribeMessage(type, m);
 	}
-
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		readLock.lock();
-		try {
-			if (isRegistered(m)) {
-				if (!isSubscribedTo(m, type)) { // the mics is not subscribed to the broadcast type
-					readLock.unlock(); // attempt writing
-					writeLock.lock();
-					try {
-						if (!subscriptionMap.containsKey(type)) { // double check - if broadcast does not exist in submap
-							subscriptionMap.put(type, new HashSet<>());
-							subscriptionMap.get(type).add(m); // add the microservice to the submap
-							reverseSubscriptionMap.get(m).add(type);
-						} else if (!subscriptionMap.get(type).contains(m)) { //check if mics registered to broadcast already
-							subscriptionMap.get(type).add(m);
-							reverseSubscriptionMap.get(m).add(type);
-						}
-					} finally {
-						writeLock.unlock();
-					}
-				}
-			}
-		} finally {
-			readLock.unlock();
-		}
+		subscribeMessage(type, m);
 	}
 
 	@Override
@@ -104,7 +66,6 @@ public class MessageBusImpl implements MessageBus {
 		futures.get(e).resolve(result);
 		futures.get(e).notifyAll();
 		futures.remove(e);
-
 	}
 
 	@Override
@@ -115,10 +76,7 @@ public class MessageBusImpl implements MessageBus {
 				readLock.unlock();
 				writeLock.lock(); //attempt to write
 				try {
-					if (subscriptionMap.containsKey(b.getClass())) { // double check if anything has changed
-						for (MicroService mics : subscriptionMap.get(b.getClass())) //for each microservice subscribed to the broadcast
-							messageQueues.get(mics).add(b); // insert the message in the correct mics queue and notify it if it is waiting
-					}
+					addBroadcastToQueues(b);
 				} finally {
 					writeLock.unlock();
 				}
@@ -128,7 +86,6 @@ public class MessageBusImpl implements MessageBus {
 		}
 	}
 
-
 	@Override
 	public <T> Future<T> sendEvent(Event<T> e) {
 		readLock.lock();
@@ -137,7 +94,8 @@ public class MessageBusImpl implements MessageBus {
 			if (subscriptionMap.containsKey(e.getClass())) { // check if any service is subscribed to the event
 				future = new Future<>(); // create a new future and associate the future with the event
 				futures.put(e, future);
-				roundRobinSend(e); // insert the message in the correct mics queue and notify it if it is waiting
+				// TODO change to get or def
+				roundRobinSend(e, subscriptionMap.get(e.getClass())); // insert the message in the correct mics queue and notify it if it is waiting
 			}
 		} finally {
 			readLock.unlock();
@@ -166,7 +124,6 @@ public class MessageBusImpl implements MessageBus {
 			readLock.unlock();
 		}
 	}
-
 
 	@Override
 	public void unregister(MicroService m) {
@@ -204,10 +161,58 @@ public class MessageBusImpl implements MessageBus {
 		return messageQueues.containsKey(m);
 	}
 
-	private <T> void roundRobinSend(Event<T> e) {
-		//TODO implement RR
+	private <T> void roundRobinSend(Event<T> e, ArrayList<MicroService> subscriptions) {
+		// check the current index to decide which mics going to get the event
+		AtomicInteger index = indexList.get(e.getClass());
+
+		int indexNext = 0;
+		int newIndex;
+
+		// increment the index
+		boolean changed = false;
+		while (!changed) {
+			indexNext = index.get() % subscriptions.size();
+			newIndex = (indexNext + 1) % subscriptions.size();
+			changed = index.compareAndSet(indexNext , newIndex);
+		}
+
+		// send the event to the next microservice in line
+		MicroService m = subscriptions.get(indexNext);
+		messageQueues.get(m).add(e);
 	}
 
+	private void subscribeMessage(Class<? extends Message> type, MicroService m){
+		readLock.lock();
+		try {
+			if (isRegistered(m)) { // check if mics already registered
+				if (!isSubscribedTo(m, type)) { // the mics is not subscribed to the event type
+					readLock.unlock(); // attempt writing
+					writeLock.lock();
+					try {
+						if (!subscriptionMap.containsKey(type)) { // check if event does not exist in submap - never been used
+							subscriptionMap.put(type, new ArrayList<>()); // if so then create an entry for it
+							subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
+							reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
+						} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
+							subscriptionMap.get(type).add(m); // add the mics to the event type map
+							reverseSubscriptionMap.get(m).add(type);
+						}
+					} finally {
+						writeLock.unlock();
+					}
+				}
+			}
+		} finally {
+			readLock.unlock();
+		}
+	}
+
+	private void addBroadcastToQueues(Broadcast b){
+		if (subscriptionMap.containsKey(b.getClass())) { // double check if anything has changed
+			for (MicroService mics : subscriptionMap.get(b.getClass())) //for each microservice subscribed to the broadcast
+				messageQueues.get(mics).add(b); // insert the message in the correct mics queue and notify it if it is waiting
+		}
+	}
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
