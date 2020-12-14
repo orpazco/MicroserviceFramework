@@ -1,6 +1,5 @@
 package bgu.spl.mics.application.services;
 
-import bgu.spl.mics.Event;
 import bgu.spl.mics.Future;
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.messages.*;
@@ -8,10 +7,8 @@ import bgu.spl.mics.application.passiveObjects.Attack;
 import bgu.spl.mics.application.passiveObjects.Diary;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 /**
  * LeiaMicroservices Initialized with Attack objects, and sends them as  {@link bgu.spl.mics.application.messages.AttackEvent}.
@@ -54,8 +51,8 @@ public class LeiaMicroservice extends MicroService {
         // wait for everyone to go online
         try {
             latch.await();
-        }
-        catch(InterruptedException e) {e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         } // print interruption log
         subscribeBroadcast(TerminationEvent.class, (event) -> terminate());
         orchestrateAttacks();

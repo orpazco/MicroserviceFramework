@@ -40,10 +40,15 @@ public class EwokTest {
         ewok.acquire();
         boolean availability = ewok.isAvailable();
         // attempt to acquire and check if boolean changed  should not change
-        ewok.acquire();
-        assertEquals(availability, ewok.isAvailable(),"Expected: " + availability + "Actual: " + ewok.isAvailable());
-        // check if serial is the same
-        assertEquals(initialSN, ewok.getSerialNumber(), "Expected SN: "+ initialSN + "Actual: " + ewok.getSerialNumber());
+        try{
+            ewok.acquire();
+            fail("attempting to acquire unavailable resource, but no exception was thrown.");
+        }
+        catch (IllegalStateException e){
+            assertEquals(availability, ewok.isAvailable(),"Expected: " + availability + "Actual: " + ewok.isAvailable());
+            // check if serial is the same
+            assertEquals(initialSN, ewok.getSerialNumber(), "Expected SN: "+ initialSN + "Actual: " + ewok.getSerialNumber());
+        }
     }
     @Test
     public void testReleaseUnavailable(){

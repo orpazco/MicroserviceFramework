@@ -21,17 +21,24 @@ import java.util.concurrent.TimeUnit;
 public class Main {
 	private static final String PATH = "input.json" ;
 
-	public static void main(String[] args) {
-		long begin = System.currentTimeMillis();
-		System.out.println("start: " + begin);
+	public static void main(String[] args) throws IOException {
+		// init params
+		String inputPath = args[0];
+		String outputPath = args[1];
+		Diary diary = new Diary();
+		ExecutorService executor = Executors.newFixedThreadPool(5);
+
+		long begin = System.currentTimeMillis(); //TODO delete
+		System.out.println("start: " + begin);//TODO delete
 		CountDownLatch latch = new CountDownLatch(4);
 		FlowData flowData = null;
 		try {
-			flowData = JsonHandler.deserialize(PATH);
+			flowData = JsonHandler.deserialize(PATH); //TODO delete
+			// flowData = JsonHandler.deserialize(inputPath);
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw e;
 		}
-		Diary diary = new Diary();
 		Ewoks ewoks = new Ewoks(flowData.getEwoks());
 		// Microservice initiation
 		LinkedList<MicroService> microservices = new LinkedList<>();
@@ -41,20 +48,20 @@ public class Main {
 		microservices.add(new HanSoloMicroservice(diary, ewoks, latch));
 		microservices.add(new R2D2Microservice(flowData.getR2D2(), diary, latch));
 		// Threadpool initiation
-		ExecutorService executor = Executors.newFixedThreadPool(5);
 		for(MicroService mics : microservices)
 			executor.execute(mics);
 		executor.shutdown();
 		try {
 			executor.awaitTermination(70, TimeUnit.SECONDS);
-			JsonHandler.serialize(diary,"out.json");
+			JsonHandler.serialize(diary,"out.json");//TODO delete
+			//JsonHandler.serialize(diary,outputPath);
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
-		long end = System.currentTimeMillis();
-		System.out.print("end: " + end);
-		long total = end-begin;
-		System.out.print("\ntotal: " + total);
+		long end = System.currentTimeMillis();//TODO delete
+		System.out.print("end: " + end);//TODO delete
+		long total = end-begin;//TODO delete
+		System.out.print("\ntotal: " + total);//TODO delete
 
 	}
 }
