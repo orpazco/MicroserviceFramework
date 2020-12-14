@@ -1,0 +1,44 @@
+{
+  "attacks": [
+    {
+      "duration" : 300,
+      "serials" : [1,2]
+    },
+    {
+      "duration" : 300,
+      "serials" : [2,1]
+    },
+	{
+      "duration" : 300,
+      "serials" : [5,4]
+    },
+	{
+      "duration" : 200,
+      "serials" : [3,1]
+    },
+	{
+      "duration" : 300,
+      "serials" : [4,2]
+    }
+	,
+	{
+      "duration" : 300,
+      "serials" : [4,2]
+    }
+	,
+	{
+      "duration" : 300,
+      "serials" : [4,2]
+    }
+	,
+	{
+      "duration" : 300,
+      "serials" : [4,2]
+    }
+	
+  ],
+
+  "R2D2": 100,
+  "Lando": 100,
+  "Ewoks": 5
+}

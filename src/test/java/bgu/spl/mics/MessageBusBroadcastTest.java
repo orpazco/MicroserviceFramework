@@ -37,11 +37,11 @@ public class MessageBusBroadcastTest {
         try {
             //attempt to retrieve a message from bm1's queue
             b = messageBus.awaitMessage(bCastMic1);
+            assertEquals(b , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + b.getClass());
         }
         catch (IllegalStateException | InterruptedException e){ // if bm1 is unregistered or interrupted exception is thrown
             fail("Exception thrown: " + e.getMessage() + "\nPossibly because of unregistered micro-service or test interruption");
         }
-        assertEquals(b , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + b.getClass());
     }
 
     @Test
@@ -56,12 +56,12 @@ public class MessageBusBroadcastTest {
             //attempt to retrieve a message from both bm's queue
             a = messageBus.awaitMessage(bCastMic2);
             b = messageBus.awaitMessage(bCastMic1);
+            assertEquals(b , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + b.getClass());
+            assertEquals(a , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + a.getClass());
         }
         catch (IllegalStateException | InterruptedException e){ // if bm1 is unregistered or interrupted exception is thrown
             fail("Exception thrown: " + e.getMessage() + "\nPossibly because of unregistered micro-service or test interruption");
         }
-        assertEquals(b , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + b.getClass());
-        assertEquals(a , bCastEvent1, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + a.getClass());
     }
 
     @Test
@@ -88,30 +88,27 @@ public class MessageBusBroadcastTest {
         try {
             // pull the second message from bm2's queue - a be2 type message
             b = messageBus.awaitMessage(bCastMic2);
+            // now bm2 should have only be1 in its queue as well
+            assertEquals(a ,b);
         }
         catch (IllegalStateException | InterruptedException e){
             fail("Exception thrown: " + e.getMessage() + "\nPossibly because of unregistered micro-service or test interruption");
         }
-        // now bm2 should have only be1 in its queue as well
-        assertEquals(a ,b);
     }
 
     @Test
     public void testBCastUnregisteredAwait() {
         //tests that an unregistered waiter throws an exception
         messageBus.unregister(bCastMic1); // bm1 was registered ot the message bus and now is removed
-        try{
+        try {
             messageBus.awaitMessage(bCastMic1);
-        }
-        catch (IllegalStateException e) {
+            fail("Excpected IllegalStateException and got no exception");
+        } catch (IllegalStateException e) {
             // test passes if the correct exception is thrown
             assertTrue(true);
+        } catch (Exception e) {
+            fail("Expecting IllegalStateException and got: " + e.getMessage());
         }
-        catch (Exception e){
-        fail("Expecting IllegalStateException and got: " + e.getMessage());
-
-        }
-        fail("Excpected IllegalStateException and got no exception");
     }
 
     @Test
@@ -125,12 +122,12 @@ public class MessageBusBroadcastTest {
         // inspects bm1's queue for messages - expecting it only to contain the be2 message
         try{
             a = messageBus.awaitMessage(bCastMic1);
+            // checks if the message received is the first one sent or the second, if got the second one - that means first message was not saved
+            assertEquals(a, bCastEvent2, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + a.getClass());
         }
         catch (IllegalStateException | InterruptedException e){
             fail("Exception thrown: " + e.getMessage());
         }
-        // checks if the message received is the first one sent or the second, if got the second one - that means first message was not saved
-        assertEquals(a, bCastEvent2, "Expected message type: " + bCastEvent1.getClass() + "Actual: " + a.getClass());
     }
 
     @AfterEach
