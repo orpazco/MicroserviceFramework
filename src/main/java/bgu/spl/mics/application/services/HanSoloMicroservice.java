@@ -1,6 +1,7 @@
 package bgu.spl.mics.application.services;
 
 
+import bgu.spl.mics.application.messages.NoMoreAttacks;
 import bgu.spl.mics.application.passiveObjects.Diary;
 import bgu.spl.mics.application.passiveObjects.Ewoks;
 
@@ -21,5 +22,10 @@ public class HanSoloMicroservice extends AttackMicroservice {
     @Override
     protected void finish() {
         diary.setHanSoloTerminate(System.currentTimeMillis());
+    }
+
+    @Override
+    protected void subscribeToNoMoreAttacksEvent() {
+        subscribeBroadcast(NoMoreAttacks.class, (e)-> diary.setHanSoloFinish(System.currentTimeMillis()));
     }
 }
