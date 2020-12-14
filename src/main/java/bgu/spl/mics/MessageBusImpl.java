@@ -29,7 +29,6 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap; // a structure that maps mics to their subscriptions
 	private HashMap<Event, Future> futures; // a structure mapping events to their respective future events
 	private Map<Class<? extends Event>, AtomicInteger> indexList;
-	private ConcurrentHashMap<Class<? extends Event>, ConcurrentLinkedQueue<MicroService>> micsQueue; // queue for round robin
 	private final Lock readLock;
 	private final Lock writeLock;
 
@@ -42,7 +41,6 @@ public class MessageBusImpl implements MessageBus {
 		ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 		readLock = readWriteLock.readLock();
 		writeLock = readWriteLock.writeLock();
-		micsQueue = new ConcurrentHashMap<>();
 	}
 
 	public static MessageBusImpl getInstance() {
