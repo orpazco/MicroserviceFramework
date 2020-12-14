@@ -64,12 +64,14 @@ public class MessageBusImpl implements MessageBus {
 	@SuppressWarnings("unchecked")
 	public <T> void complete(Event<T> e, T result) {
 		// resolve the associated future with result
-		Future f = futures.get(e);
-		synchronized (f) {
-			futures.get(e).resolve(result);
-			futures.get(e).notifyAll();
+		Future currFuture = futures.get(e);
+		synchronized (currFuture) {
+			if (futures.containsKey(e)) {
+				futures.get(e).resolve(result);
+				futures.get(e).notifyAll();
+				futures.remove(e);
+			}
 		}
-		futures.remove(e);
 	}
 
 	@Override
@@ -230,7 +232,7 @@ public class MessageBusImpl implements MessageBus {
 		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
 		Message message = messageQueues.get(m).take();
 		// TODO LOG DEBUG
-		System.out.println("service: " + m.getName() + " took: " + message.getClass().toString() + " at: " + System.currentTimeMillis() );
+		System.out.println("service: " + m.getName() + " took: " + message.toString() + " at: " + System.currentTimeMillis() );
 		// TODO LOG DEBUG
 		return message;
 	}
