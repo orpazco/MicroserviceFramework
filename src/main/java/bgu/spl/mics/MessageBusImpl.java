@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -30,7 +29,6 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap; // a structure that maps mics to their subscriptions
 	private HashMap<Event, Future> futures; // a structure mapping events to their respective future events
 	private Map<Class<? extends Message>, AtomicInteger> indexList;
-	private ConcurrentHashMap<Class<? extends Event>, ConcurrentLinkedQueue<MicroService>> micsQueue; // queue for round robin
 	private final Lock readLock;
 	private final Lock writeLock;
 
@@ -43,7 +41,6 @@ public class MessageBusImpl implements MessageBus {
 		ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 		readLock = readWriteLock.readLock();
 		writeLock = readWriteLock.writeLock();
-		micsQueue = new ConcurrentHashMap<>();
 		indexList = new HashMap<>();
 	}
 
@@ -165,11 +162,7 @@ public class MessageBusImpl implements MessageBus {
 		if (!messageQueues.containsKey(m))
 			throw new IllegalStateException();
 		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
-		Message message = messageQueues.get(m).take();
-		// TODO LOG DEBUG
-		System.out.println("service: " + m.getName() + " took: " + message.toString() + " at: " + System.currentTimeMillis() );
-		// TODO LOG DEBUG
-		return message;
+		return messageQueues.get(m).take();
 	}
 
 	private boolean isSubscribedTo(MicroService m, Class<? extends Message> type) {

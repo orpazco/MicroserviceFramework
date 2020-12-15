@@ -19,8 +19,6 @@ import java.util.concurrent.TimeUnit;
  * In the end, you should output a JSON.
  */
 public class Main {
-	private static final String PATH = "input.json" ;
-
 	public static void main(String[] args) throws IOException {
 		// init params
 		String inputPath = args[0];
@@ -28,18 +26,16 @@ public class Main {
 		Diary diary = new Diary();
 		ExecutorService executor = Executors.newFixedThreadPool(5);
 
-		long begin = System.currentTimeMillis(); //TODO delete
-		System.out.println("start: " + begin);//TODO delete
 		CountDownLatch latch = new CountDownLatch(4);
 		FlowData flowData = null;
 		try {
-			flowData = JsonHandler.deserialize(PATH); //TODO delete
-			// flowData = JsonHandler.deserialize(inputPath);
+			flowData = JsonHandler.deserialize(inputPath);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw e;
 		}
 		Ewoks ewoks = new Ewoks(flowData.getEwoks());
+
 		// Microservice initiation
 		LinkedList<MicroService> microservices = new LinkedList<>();
 		microservices.add(new LeiaMicroservice(flowData.getAttacks(), diary, latch));
@@ -47,21 +43,16 @@ public class Main {
 		microservices.add(new C3POMicroservice( diary, ewoks, latch));
 		microservices.add(new HanSoloMicroservice(diary, ewoks, latch));
 		microservices.add(new R2D2Microservice(flowData.getR2D2(), diary, latch));
+
 		// Threadpool initiation
 		for(MicroService mics : microservices)
 			executor.execute(mics);
 		executor.shutdown();
 		try {
-			executor.awaitTermination(70, TimeUnit.SECONDS);
-			JsonHandler.serialize(diary,"out.json");//TODO delete
-			//JsonHandler.serialize(diary,outputPath);
+			executor.awaitTermination(5, TimeUnit.MINUTES);
+			JsonHandler.serialize(diary,outputPath);
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
-		long end = System.currentTimeMillis();//TODO delete
-		System.out.print("end: " + end);//TODO delete
-		long total = end-begin;//TODO delete
-		System.out.print("\ntotal: " + total);//TODO delete
-
 	}
 }
