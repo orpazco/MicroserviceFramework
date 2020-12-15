@@ -142,8 +142,10 @@ public class MessageBusImpl implements MessageBus {
 					if (isRegistered(m)) {
 						// get all of m's subscriptions
 						HashSet<Class<? extends Message>> subscriptions = reverseSubscriptionMap.get(m);
-						for (Class type : subscriptions)  // remove m from the as a subscriber for each subscription
+						for (Class type : subscriptions) {  // remove m from the as a subscriber for each subscription
 							subscriptionMap.get(type).remove(m);
+							removeEmptySubscriptions(type); // if the event type is empty - remove all traces of it
+						}
 						messageQueues.remove(m); // remove the mics queue from the message bus
 						reverseSubscriptionMap.remove(m); // remove the mics  reverse record from the message bus
 					}
@@ -163,6 +165,13 @@ public class MessageBusImpl implements MessageBus {
 			throw new IllegalStateException();
 		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
 		return messageQueues.get(m).take();
+	}
+
+	private void removeEmptySubscriptions(Class<? extends Message> type){
+		if (subscriptionMap.get(type).size()==0) {
+			subscriptionMap.remove(type);
+			indexList.remove(type);
+		}
 	}
 
 	private boolean isSubscribedTo(MicroService m, Class<? extends Message> type) {
