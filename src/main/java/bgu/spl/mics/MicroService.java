@@ -1,7 +1,5 @@
 package bgu.spl.mics;
 
-import bgu.spl.mics.application.messages.TerminationEvent;
-
 import java.util.HashMap;
 import java.util.Map;
 

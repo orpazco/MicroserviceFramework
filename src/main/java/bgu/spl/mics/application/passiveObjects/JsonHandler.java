@@ -17,11 +17,15 @@ public class JsonHandler {
      */
     public static FlowData deserialize(String path) throws IOException {
         Gson gson = new Gson();
-        Reader reader = Files.newBufferedReader(Paths.get(path));
-        // convert json file to flowData object
-        FlowData flowData = gson.fromJson(reader, FlowData.class);
-        reader.close();
-        return flowData;
+        try(Reader reader = Files.newBufferedReader(Paths.get(path))){
+            // convert json file to flowData object
+            FlowData flowData = gson.fromJson(reader, FlowData.class);
+            reader.close();
+            return flowData;
+        }
+        catch (IOException e){
+            throw e;
+        }
     }
 
     /**
@@ -32,9 +36,13 @@ public class JsonHandler {
      */
     public static void serialize(Diary diary, String path) throws IOException {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        // convert diary object to json format
-        FileWriter writer = new FileWriter(path);
-        gson.toJson(diary, writer);
-        writer.close();
+        try(FileWriter writer = new FileWriter(path);) {
+            // convert diary object to json format
+            gson.toJson(diary, writer);
+            writer.close();
+        }
+        catch (IOException e){
+            throw e;
+        }
     }
 }

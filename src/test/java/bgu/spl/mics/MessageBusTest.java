@@ -3,10 +3,7 @@ package bgu.spl.mics;
 import bgu.spl.mics.application.messages.TestEvent;
 import bgu.spl.mics.application.services.TestMic1;
 import bgu.spl.mics.application.services.TestMic2;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -114,7 +111,8 @@ public class MessageBusTest {
 
         // check if the message bus sends the last event that was sent after the service subscribed again
         try {
-            Message message = messageBus.awaitMessage(service2);
+            Thread.sleep(100);
+            Message message = messageBus.awaitMessage(service1);
             assertEquals(testEvent2, message, "received unexpected event from messageBus");
         } catch (IllegalStateException | InterruptedException e) {
             fail(e.getMessage());

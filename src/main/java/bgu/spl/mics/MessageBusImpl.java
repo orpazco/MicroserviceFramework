@@ -1,12 +1,12 @@
 package bgu.spl.mics;
 
-import sun.applet.resources.MsgAppletViewer_zh_TW;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -28,7 +28,7 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<Class<? extends Message>, ArrayList<MicroService>> subscriptionMap; // a structure that maps event types to the mics that are subscribed to it
 	private ConcurrentHashMap<MicroService, HashSet<Class<? extends Message>>> reverseSubscriptionMap; // a structure that maps mics to their subscriptions
 	private HashMap<Event, Future> futures; // a structure mapping events to their respective future events
-	private Map<Class<? extends Event>, AtomicInteger> indexList;
+	private Map<Class<? extends Message>, AtomicInteger> indexList;
 	private final Lock readLock;
 	private final Lock writeLock;
 
@@ -41,6 +41,7 @@ public class MessageBusImpl implements MessageBus {
 		ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 		readLock = readWriteLock.readLock();
 		writeLock = readWriteLock.writeLock();
+		indexList = new HashMap<>();
 	}
 
 	public static MessageBusImpl getInstance() {
@@ -49,21 +50,26 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		subscribeMessage(type, m);
+		subscribeMessage(type, m, true);
 	}
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		subscribeMessage(type, m);
+		subscribeMessage(type, m, false);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public <T> void complete(Event<T> e, T result) {
 		// resolve the associated future with result
-		futures.get(e).resolve(result);
-		futures.get(e).notifyAll();
-		futures.remove(e);
+		Future currFuture = futures.get(e);
+		synchronized (currFuture) {
+			if (futures.containsKey(e)) {
+				futures.get(e).resolve(result);
+				futures.get(e).notifyAll();
+				futures.remove(e);
+			}
+		}
 	}
 
 	@Override
@@ -76,6 +82,7 @@ public class MessageBusImpl implements MessageBus {
 				try {
 					addBroadcastToQueues(b);
 				} finally {
+					readLock.lock();
 					writeLock.unlock();
 				}
 			}
@@ -89,11 +96,11 @@ public class MessageBusImpl implements MessageBus {
 		readLock.lock();
 		Future<T> future = null;
 		try {
-			if (subscriptionMap.containsKey(e.getClass())) { // check if any service is subscribed to the event
+			ArrayList<MicroService> subscriptions = subscriptionMap.getOrDefault(e.getClass(), null);
+			if (subscriptions != null && subscriptions.size() > 0){
 				future = new Future<>(); // create a new future and associate the future with the event
 				futures.put(e, future);
-				// TODO change to get or def
-				roundRobinSend(e, subscriptionMap.get(e.getClass())); // insert the message in the correct mics queue and notify it if it is waiting
+				roundRobinSend(e, subscriptions);
 			}
 		} finally {
 			readLock.unlock();
@@ -115,6 +122,7 @@ public class MessageBusImpl implements MessageBus {
 						reverseSubscriptionMap.put(m, new HashSet<>());
 					}
 				} finally {
+					readLock.lock();
 					writeLock.unlock();
 				}
 			}
@@ -134,17 +142,35 @@ public class MessageBusImpl implements MessageBus {
 					if (isRegistered(m)) {
 						// get all of m's subscriptions
 						HashSet<Class<? extends Message>> subscriptions = reverseSubscriptionMap.get(m);
-						for (Class type : subscriptions)  // remove m from the as a subscriber for each subscription
+						for (Class type : subscriptions) {  // remove m from the as a subscriber for each subscription
 							subscriptionMap.get(type).remove(m);
+							removeEmptySubscriptions(type); // if the event type is empty - remove all traces of it
+						}
 						messageQueues.remove(m); // remove the mics queue from the message bus
 						reverseSubscriptionMap.remove(m); // remove the mics  reverse record from the message bus
 					}
 				} finally {
+					readLock.lock();
 					writeLock.unlock();
 				}
 			}
 		} finally {
 			readLock.unlock();
+		}
+	}
+
+	@Override
+	public Message awaitMessage(MicroService m) throws IllegalStateException, InterruptedException {
+		if (!messageQueues.containsKey(m))
+			throw new IllegalStateException();
+		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
+		return messageQueues.get(m).take();
+	}
+
+	private void removeEmptySubscriptions(Class<? extends Message> type){
+		if (subscriptionMap.get(type).size()==0) {
+			subscriptionMap.remove(type);
+			indexList.remove(type);
 		}
 	}
 
@@ -163,23 +189,25 @@ public class MessageBusImpl implements MessageBus {
 		// check the current index to decide which mics going to get the event
 		AtomicInteger index = indexList.get(e.getClass());
 
-		int indexNext = 0;
+		int currentIndex = 0;
 		int newIndex;
 
 		// increment the index
 		boolean changed = false;
 		while (!changed) {
-			indexNext = index.get() % subscriptions.size();
-			newIndex = (indexNext + 1) % subscriptions.size();
-			changed = index.compareAndSet(indexNext , newIndex);
-		}
+			currentIndex = index.get();
+			newIndex = currentIndex + 1;
+			changed = index.compareAndSet(currentIndex , newIndex);
 
+			// modulo on the index in case it's bigger than subscription size
+			currentIndex %= subscriptions.size();
+		}
 		// send the event to the next microservice in line
-		MicroService m = subscriptions.get(indexNext);
+		MicroService m = subscriptions.get(currentIndex);
 		messageQueues.get(m).add(e);
 	}
 
-	private void subscribeMessage(Class<? extends Message> type, MicroService m){
+	private void subscribeMessage(Class<? extends Message> type, MicroService m, boolean roundRobinRequired){
 		readLock.lock();
 		try {
 			if (isRegistered(m)) { // check if mics already registered
@@ -187,15 +215,9 @@ public class MessageBusImpl implements MessageBus {
 					readLock.unlock(); // attempt writing
 					writeLock.lock();
 					try {
-						if (!subscriptionMap.containsKey(type)) { // check if event does not exist in submap - never been used
-							subscriptionMap.put(type, new ArrayList<>()); // if so then create an entry for it
-							subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
-							reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
-						} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
-							subscriptionMap.get(type).add(m); // add the mics to the event type map
-							reverseSubscriptionMap.get(m).add(type);
-						}
+						manageSubscriptions(type, m, roundRobinRequired);
 					} finally {
+						readLock.lock();
 						writeLock.unlock();
 					}
 				}
@@ -212,12 +234,16 @@ public class MessageBusImpl implements MessageBus {
 		}
 	}
 
-	@Override
-	public Message awaitMessage(MicroService m) throws InterruptedException {
-		if (!messageQueues.containsKey(m))
-			throw new IllegalStateException();
-		// attempt to retrieve a message from m's queue - blocking queue will put thread in waiting if no message is available
-		Message message = messageQueues.get(m).take();
-		return message;
+	private void manageSubscriptions(Class<? extends Message> type, MicroService m, boolean roundRobinRequired){
+		if (!subscriptionMap.containsKey(type)) { // check if event does not exist in submap - never been used
+			subscriptionMap.put(type, new ArrayList<>()); // if so then create an entry for it
+			subscriptionMap.get(type).add(m); // add the microservice to the submap at the specific event entry
+			reverseSubscriptionMap.get(m).add(type); // also map the event in the reverse submap
+			if (roundRobinRequired)
+				indexList.put(type, new AtomicInteger(0));
+		} else if (!subscriptionMap.get(type).contains(m)) { // check if the mics is registered to event already
+			subscriptionMap.get(type).add(m); // add the mics to the event type map
+			reverseSubscriptionMap.get(m).add(type);
+		}
 	}
 }
